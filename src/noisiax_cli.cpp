@@ -1,10 +1,13 @@
 #include "noisiax/noisiax.hpp"
 
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
+#include <variant>
 
 namespace {
 
@@ -59,6 +62,25 @@ noisiax::TraceLevel parse_trace_level(const std::string& text) {
 
 std::string run_result_to_json(const noisiax::RunResult& result, const noisiax::RunOptions& options) {
     std::ostringstream oss;
+
+    auto typed_scalar_to_json = [&](const noisiax::schema::TypedScalarValue& value) -> std::string {
+        return std::visit([&](auto&& arg) -> std::string {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, int64_t>) {
+                return std::to_string(arg);
+            } else if constexpr (std::is_same_v<T, double>) {
+                std::ostringstream num;
+                num << std::fixed << std::setprecision(6) << arg;
+                return num.str();
+            } else if constexpr (std::is_same_v<T, bool>) {
+                return arg ? "true" : "false";
+            } else if constexpr (std::is_same_v<T, std::string>) {
+                return "\"" + escape_json(arg) + "\"";
+            }
+            return "null";
+        }, value);
+    };
+
     oss << "{\n";
     oss << "  \"scenario_id\": \"" << escape_json(result.report.scenario_id) << "\",\n";
     oss << "  \"success\": " << (result.report.success ? "true" : "false") << ",\n";
@@ -212,7 +234,170 @@ std::string run_result_to_json(const noisiax::RunResult& result, const noisiax::
         oss << "}";
     }
     oss << "]\n";
-    oss << "  }\n";
+    oss << "  }";
+
+    if (result.typed_final_state.has_value() || !result.typed_system_traces.empty()) {
+        oss << ",\n";
+
+        oss << "  \"typed_system_traces\": [";
+        for (std::size_t i = 0; i < result.typed_system_traces.size(); ++i) {
+            const auto& trace = result.typed_system_traces[i];
+            if (i > 0) oss << ",";
+            oss << "\n    {";
+            oss << "\"event_id\": " << trace.event_id << ", ";
+            oss << "\"system_id\": \"" << escape_json(trace.system_id) << "\", ";
+            oss << "\"timestamp\": " << trace.timestamp;
+
+            if (!trace.matched_entity_ids.empty()) {
+                oss << ", \"matched_entity_ids\": [";
+                for (std::size_t m = 0; m < trace.matched_entity_ids.size(); ++m) {
+                    if (m > 0) oss << ", ";
+                    oss << "\"" << escape_json(trace.matched_entity_ids[m]) << "\"";
+                }
+                oss << "]";
+            }
+
+            if (!trace.writes.empty()) {
+                oss << ", \"writes\": [";
+                for (std::size_t w = 0; w < trace.writes.size(); ++w) {
+                    const auto& write = trace.writes[w];
+                    if (w > 0) oss << ", ";
+                    oss << "{"
+                        << "\"entity_id\": \"" << escape_json(write.entity_id) << "\", "
+                        << "\"component_type_id\": \"" << escape_json(write.component_type_id) << "\", "
+                        << "\"field_name\": \"" << escape_json(write.field_name) << "\", "
+                        << "\"old_value\": \"" << escape_json(write.old_value) << "\", "
+                        << "\"new_value\": \"" << escape_json(write.new_value) << "\""
+                        << "}";
+                }
+                oss << "]";
+            }
+
+            if (!trace.created_relations.empty()) {
+                oss << ", \"created_relations\": [";
+                for (std::size_t r = 0; r < trace.created_relations.size(); ++r) {
+                    const auto& rel = trace.created_relations[r];
+                    if (r > 0) oss << ", ";
+                    oss << "{"
+                        << "\"relation_type_id\": \"" << escape_json(rel.relation_type_id) << "\", "
+                        << "\"source_entity_id\": \"" << escape_json(rel.source_entity_id) << "\", "
+                        << "\"target_entity_id\": \"" << escape_json(rel.target_entity_id) << "\""
+                        << "}";
+                }
+                oss << "]";
+            }
+
+            if (!trace.emitted_events.empty()) {
+                oss << ", \"emitted_events\": [";
+                for (std::size_t e = 0; e < trace.emitted_events.size(); ++e) {
+                    const auto& emitted = trace.emitted_events[e];
+                    if (e > 0) oss << ", ";
+                    oss << "{"
+                        << "\"event_type_id\": \"" << escape_json(emitted.event_type_id) << "\", "
+                        << "\"event_id\": " << emitted.event_id
+                        << "}";
+                }
+                oss << "]";
+            }
+
+            if (!trace.random_draws.empty()) {
+                oss << ", \"random_draws\": [";
+                for (std::size_t d = 0; d < trace.random_draws.size(); ++d) {
+                    const auto& draw = trace.random_draws[d];
+                    if (d > 0) oss << ", ";
+                    oss << "{"
+                        << "\"stream_key\": \"" << escape_json(draw.stream_key) << "\", "
+                        << "\"draw_index\": " << draw.draw_index << ", "
+                        << "\"raw_u64\": " << draw.raw_u64 << ", "
+                        << "\"normalized\": " << draw.normalized << ", "
+                        << "\"interpreted_result\": \"" << escape_json(draw.interpreted_result) << "\"}";
+                }
+                oss << "]";
+            }
+
+            oss << "}";
+        }
+        if (!result.typed_system_traces.empty()) {
+            oss << "\n  ";
+        }
+        oss << "],\n";
+
+        oss << "  \"typed_final_state\": ";
+        if (!result.typed_final_state.has_value()) {
+            oss << "null\n";
+        } else {
+            const auto& snapshot = *result.typed_final_state;
+            oss << "{\n";
+            oss << "    \"state_fingerprint\": \"" << escape_json(snapshot.state_fingerprint) << "\",\n";
+
+            oss << "    \"summary\": {";
+            bool first_summary = true;
+            for (const auto& [key, value] : snapshot.summary) {
+                if (!first_summary) oss << ", ";
+                first_summary = false;
+                oss << "\"" << escape_json(key) << "\": \"" << escape_json(value) << "\"";
+            }
+            oss << "},\n";
+
+            oss << "    \"entities\": [";
+            for (std::size_t i = 0; i < snapshot.entities.size(); ++i) {
+                const auto& entity = snapshot.entities[i];
+                if (i > 0) oss << ", ";
+                oss << "{";
+                oss << "\"entity_id\": \"" << escape_json(entity.entity_id) << "\", ";
+                oss << "\"entity_type_id\": \"" << escape_json(entity.entity_type_id) << "\"";
+                if (!entity.components.empty()) {
+                    oss << ", \"components\": {";
+                    bool first_component = true;
+                    for (const auto& comp : entity.components) {
+                        if (!first_component) oss << ", ";
+                        first_component = false;
+                        oss << "\"" << escape_json(comp.component_type_id) << "\": {";
+                        bool first_field = true;
+                        for (const auto& [field, val] : comp.fields) {
+                            if (!first_field) oss << ", ";
+                            first_field = false;
+                            oss << "\"" << escape_json(field) << "\": " << typed_scalar_to_json(val);
+                        }
+                        oss << "}";
+                    }
+                    oss << "}";
+                }
+                oss << "}";
+            }
+            oss << "],\n";
+
+            oss << "    \"relations\": [";
+            for (std::size_t i = 0; i < snapshot.relations.size(); ++i) {
+                const auto& rel = snapshot.relations[i];
+                if (i > 0) oss << ", ";
+                oss << "{";
+                oss << "\"relation_type_id\": \"" << escape_json(rel.relation_type_id) << "\", ";
+                oss << "\"source_entity_id\": \"" << escape_json(rel.source_entity_id) << "\", ";
+                oss << "\"target_entity_id\": \"" << escape_json(rel.target_entity_id) << "\"";
+                if (rel.expires_at.has_value()) {
+                    oss << ", \"expires_at\": " << *rel.expires_at;
+                }
+                if (!rel.payload.empty()) {
+                    oss << ", \"payload\": {";
+                    bool first_field = true;
+                    for (const auto& [field, val] : rel.payload) {
+                        if (!first_field) oss << ", ";
+                        first_field = false;
+                        oss << "\"" << escape_json(field) << "\": " << typed_scalar_to_json(val);
+                    }
+                    oss << "}";
+                }
+                oss << "}";
+            }
+            oss << "]\n";
+
+            oss << "  }\n";
+        }
+    } else {
+        oss << "\n";
+    }
+
     oss << "}\n";
     return oss.str();
 }
@@ -234,6 +419,7 @@ int handle_compile(const std::string& filepath) {
         std::cout << "constraints: " << compiled.total_constraints << "\n";
         std::cout << "events: " << compiled.total_events << "\n";
         std::cout << "agent_layer: " << (compiled.agent_layer.has_value() ? "enabled" : "disabled") << "\n";
+        std::cout << "typed_layer: " << (compiled.typed_layer.has_value() ? "enabled" : "disabled") << "\n";
         return 0;
     } catch (const std::exception& ex) {
         std::cerr << "Compilation failed: " << ex.what() << "\n";
@@ -342,4 +528,3 @@ int main(int argc, char** argv) {
     print_usage(argv[0]);
     return 1;
 }
-

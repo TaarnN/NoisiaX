@@ -24,6 +24,7 @@ target_sources(noisiax
     src/noisiax.cpp
     src/engine/simulation_engine.cpp
     src/engine/agent_runtime.cpp
+    src/engine/typed_runtime.cpp
     src/serialization/yaml_serializer.cpp
     src/validation/scenario_validator.cpp
     src/compiler/scenario_compiler.cpp

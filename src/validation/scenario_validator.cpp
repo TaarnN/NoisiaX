@@ -292,6 +292,22 @@ ValidationReport ScenarioValidator::validate(const schema::ScenarioDefinition& s
     // Gate 2: Validate assumptions
     auto assumptions_result = validate_assumptions(scenario);
     report.add_result(assumptions_result);
+
+    if (scenario.typed_layer.has_value()) {
+        auto typed_layer_result = validate_typed_layer(scenario);
+        report.add_result(typed_layer_result);
+
+        auto required_fields_result = check_required_fields(scenario);
+        report.add_result(required_fields_result);
+
+        auto unknown_fields_result = check_unknown_fields(scenario);
+        report.add_result(unknown_fields_result);
+
+        auto anti_patterns_result = check_anti_patterns(scenario);
+        report.add_result(anti_patterns_result);
+
+        return report;
+    }
     
     // Gate 3: Validate entities
     auto entities_result = validate_entities(scenario);
@@ -835,6 +851,517 @@ ValidationResult ScenarioValidator::validate_agent_layer(const schema::ScenarioD
     return result;
 }
 
+namespace {
+
+bool typed_scalar_matches(const noisiax::schema::TypedScalarValue& value,
+                          noisiax::schema::TypedFieldType type) {
+    switch (type) {
+        case noisiax::schema::TypedFieldType::INTEGER:
+            return std::holds_alternative<int64_t>(value);
+        case noisiax::schema::TypedFieldType::FLOAT:
+            return std::holds_alternative<double>(value);
+        case noisiax::schema::TypedFieldType::BOOLEAN:
+            return std::holds_alternative<bool>(value);
+        case noisiax::schema::TypedFieldType::STRING:
+            return std::holds_alternative<std::string>(value);
+    }
+    return false;
+}
+
+std::vector<std::string> split_dotted_target(const std::string& value) {
+    std::vector<std::string> parts;
+    std::string current;
+    for (const char c : value) {
+        if (c == '.') {
+            parts.push_back(current);
+            current.clear();
+            continue;
+        }
+        current.push_back(c);
+    }
+    parts.push_back(current);
+    return parts;
+}
+
+}  // namespace
+
+ValidationResult ScenarioValidator::validate_typed_layer(const schema::ScenarioDefinition& scenario) {
+    ValidationResult result;
+    result.rule_name = "typed_layer";
+    result.passed = true;
+    result.level = schema::ValidationLevel::REJECT;
+
+    if (!scenario.typed_layer.has_value()) {
+        result.message = "No typed_layer defined (v1/v2 execution path)";
+        return result;
+    }
+
+    if (scenario.agent_layer.has_value()) {
+        result.passed = false;
+        result.message = "Scenario cannot contain both agent_layer and typed_layer";
+        return result;
+    }
+
+    const auto& layer = *scenario.typed_layer;
+    if (!std::isfinite(layer.world.duration) || layer.world.duration <= 0.0) {
+        result.passed = false;
+        result.message = "typed_layer.world.duration must be finite and > 0";
+        return result;
+    }
+    if (layer.world.max_event_count == 0) {
+        result.passed = false;
+        result.message = "typed_layer.world.max_event_count must be > 0";
+        return result;
+    }
+    if (layer.world.tick_interval.has_value() &&
+        (!std::isfinite(*layer.world.tick_interval) || *layer.world.tick_interval <= 0.0)) {
+        result.passed = false;
+        result.message = "typed_layer.world.tick_interval must be finite and > 0 when provided";
+        return result;
+    }
+
+    std::set<std::string> component_type_ids;
+    std::map<std::string, std::map<std::string, schema::TypedFieldType>> component_fields;
+    for (const auto& component : layer.component_types) {
+        if (component.component_type_id.empty()) {
+            result.passed = false;
+            result.message = "typed_layer component_type_id cannot be empty";
+            return result;
+        }
+        if (!component_type_ids.insert(component.component_type_id).second) {
+            result.passed = false;
+            result.message = "Duplicate typed_layer component_type_id: " + component.component_type_id;
+            return result;
+        }
+        if (component.fields.empty()) {
+            result.passed = false;
+            result.message = "typed_layer component_type has no fields: " + component.component_type_id;
+            return result;
+        }
+
+        std::set<std::string> field_names;
+        for (const auto& field : component.fields) {
+            if (field.field_name.empty()) {
+                result.passed = false;
+                result.message = "typed_layer component field_name cannot be empty in " + component.component_type_id;
+                return result;
+            }
+            if (!field_names.insert(field.field_name).second) {
+                result.passed = false;
+                result.message = "Duplicate typed_layer component field_name '" + field.field_name +
+                                 "' in " + component.component_type_id;
+                return result;
+            }
+            component_fields[component.component_type_id][field.field_name] = field.type;
+        }
+    }
+    if (component_type_ids.empty()) {
+        result.passed = false;
+        result.message = "typed_layer.component_types must not be empty";
+        return result;
+    }
+
+    std::set<std::string> entity_type_ids;
+    std::map<std::string, std::set<std::string>> entity_type_components;
+    for (const auto& entity_type : layer.entity_types) {
+        if (entity_type.entity_type_id.empty()) {
+            result.passed = false;
+            result.message = "typed_layer entity_type_id cannot be empty";
+            return result;
+        }
+        if (!entity_type_ids.insert(entity_type.entity_type_id).second) {
+            result.passed = false;
+            result.message = "Duplicate typed_layer entity_type_id: " + entity_type.entity_type_id;
+            return result;
+        }
+        if (entity_type.components.empty()) {
+            result.passed = false;
+            result.message = "typed_layer entity_type.components must not be empty for " + entity_type.entity_type_id;
+            return result;
+        }
+
+        for (const auto& component_ref : entity_type.components) {
+            if (component_type_ids.find(component_ref) == component_type_ids.end()) {
+                result.passed = false;
+                result.message = "typed_layer entity_type " + entity_type.entity_type_id +
+                                 " references unknown component_type: " + component_ref;
+                return result;
+            }
+            entity_type_components[entity_type.entity_type_id].insert(component_ref);
+        }
+    }
+    if (entity_type_ids.empty()) {
+        result.passed = false;
+        result.message = "typed_layer.entity_types must not be empty";
+        return result;
+    }
+
+    std::set<std::string> entity_ids;
+    for (const auto& entity : layer.entities) {
+        if (entity.entity_id.empty()) {
+            result.passed = false;
+            result.message = "typed_layer entity_id cannot be empty";
+            return result;
+        }
+        if (!entity_ids.insert(entity.entity_id).second) {
+            result.passed = false;
+            result.message = "Duplicate typed_layer entity_id: " + entity.entity_id;
+            return result;
+        }
+        if (entity_type_ids.find(entity.entity_type_ref) == entity_type_ids.end()) {
+            result.passed = false;
+            result.message = "typed_layer entity " + entity.entity_id +
+                             " references unknown entity_type: " + entity.entity_type_ref;
+            return result;
+        }
+
+        const auto& allowed_components = entity_type_components[entity.entity_type_ref];
+        for (const auto& [component_id, fields] : entity.components) {
+            if (component_type_ids.find(component_id) == component_type_ids.end()) {
+                result.passed = false;
+                result.message = "typed_layer entity " + entity.entity_id +
+                                 " references unknown component_type: " + component_id;
+                return result;
+            }
+            if (allowed_components.find(component_id) == allowed_components.end()) {
+                result.passed = false;
+                result.message = "typed_layer entity " + entity.entity_id +
+                                 " assigns component '" + component_id +
+                                 "' not declared on entity_type " + entity.entity_type_ref;
+                return result;
+            }
+
+            const auto& schema_fields = component_fields[component_id];
+            for (const auto& [field_name, value] : fields) {
+                const auto field_it = schema_fields.find(field_name);
+                if (field_it == schema_fields.end()) {
+                    result.passed = false;
+                    result.message = "typed_layer entity " + entity.entity_id +
+                                     " writes undeclared field '" + field_name +
+                                     "' on component " + component_id;
+                    return result;
+                }
+                if (!typed_scalar_matches(value, field_it->second)) {
+                    result.passed = false;
+                    result.message = "typed_layer entity " + entity.entity_id +
+                                     " field type mismatch for " + component_id + "." + field_name;
+                    return result;
+                }
+            }
+        }
+    }
+    if (entity_ids.empty()) {
+        result.passed = false;
+        result.message = "typed_layer.entities must not be empty";
+        return result;
+    }
+
+    std::set<std::string> relation_type_ids;
+    std::map<std::string, std::map<std::string, schema::TypedFieldType>> relation_payload_fields;
+    for (const auto& relation_type : layer.relation_types) {
+        if (relation_type.relation_type_id.empty()) {
+            result.passed = false;
+            result.message = "typed_layer relation_type_id cannot be empty";
+            return result;
+        }
+        if (!relation_type_ids.insert(relation_type.relation_type_id).second) {
+            result.passed = false;
+            result.message = "Duplicate typed_layer relation_type_id: " + relation_type.relation_type_id;
+            return result;
+        }
+        if (relation_type.max_per_entity.has_value() && *relation_type.max_per_entity == 0) {
+            result.passed = false;
+            result.message = "typed_layer relation_type.max_per_entity must be > 0 when provided";
+            return result;
+        }
+        if (relation_type.max_total.has_value() && *relation_type.max_total == 0) {
+            result.passed = false;
+            result.message = "typed_layer relation_type.max_total must be > 0 when provided";
+            return result;
+        }
+
+        std::set<std::string> payload_field_names;
+        for (const auto& field : relation_type.payload_fields) {
+            if (field.field_name.empty()) {
+                result.passed = false;
+                result.message = "typed_layer relation_type payload field_name cannot be empty in " +
+                                 relation_type.relation_type_id;
+                return result;
+            }
+            if (!payload_field_names.insert(field.field_name).second) {
+                result.passed = false;
+                result.message = "Duplicate typed_layer relation_type payload field '" + field.field_name +
+                                 "' in " + relation_type.relation_type_id;
+                return result;
+            }
+            relation_payload_fields[relation_type.relation_type_id][field.field_name] = field.type;
+        }
+    }
+
+    for (const auto& relation : layer.relations) {
+        if (relation_type_ids.find(relation.relation_type_ref) == relation_type_ids.end()) {
+            result.passed = false;
+            result.message = "typed_layer relation references unknown relation_type: " + relation.relation_type_ref;
+            return result;
+        }
+        if (entity_ids.find(relation.source_entity_ref) == entity_ids.end()) {
+            result.passed = false;
+            result.message = "typed_layer relation references unknown source entity: " + relation.source_entity_ref;
+            return result;
+        }
+        if (entity_ids.find(relation.target_entity_ref) == entity_ids.end()) {
+            result.passed = false;
+            result.message = "typed_layer relation references unknown target entity: " + relation.target_entity_ref;
+            return result;
+        }
+        if (relation.expires_at.has_value() && !std::isfinite(*relation.expires_at)) {
+            result.passed = false;
+            result.message = "typed_layer relation expires_at must be finite when provided";
+            return result;
+        }
+
+        const auto& schema_fields = relation_payload_fields[relation.relation_type_ref];
+        for (const auto& [field_name, value] : relation.payload) {
+            const auto field_it = schema_fields.find(field_name);
+            if (field_it == schema_fields.end()) {
+                result.passed = false;
+                result.message = "typed_layer relation writes undeclared payload field '" + field_name +
+                                 "' on relation_type " + relation.relation_type_ref;
+                return result;
+            }
+            if (!typed_scalar_matches(value, field_it->second)) {
+                result.passed = false;
+                result.message = "typed_layer relation payload type mismatch for " + relation.relation_type_ref +
+                                 "." + field_name;
+                return result;
+            }
+        }
+    }
+
+    std::set<std::string> event_type_ids;
+    std::map<std::string, std::map<std::string, schema::TypedFieldType>> event_payload_fields;
+    for (const auto& event_type : layer.event_types) {
+        if (event_type.event_type_id.empty()) {
+            result.passed = false;
+            result.message = "typed_layer event_type_id cannot be empty";
+            return result;
+        }
+        if (!event_type_ids.insert(event_type.event_type_id).second) {
+            result.passed = false;
+            result.message = "Duplicate typed_layer event_type_id: " + event_type.event_type_id;
+            return result;
+        }
+
+        std::set<std::string> payload_field_names;
+        for (const auto& field : event_type.payload_fields) {
+            if (field.field_name.empty()) {
+                result.passed = false;
+                result.message = "typed_layer event_type payload field_name cannot be empty in " +
+                                 event_type.event_type_id;
+                return result;
+            }
+            if (!payload_field_names.insert(field.field_name).second) {
+                result.passed = false;
+                result.message = "Duplicate typed_layer event_type payload field '" + field.field_name +
+                                 "' in " + event_type.event_type_id;
+                return result;
+            }
+            event_payload_fields[event_type.event_type_id][field.field_name] = field.type;
+        }
+    }
+
+    for (const auto& event : layer.initial_events) {
+        if (event_type_ids.find(event.event_type_ref) == event_type_ids.end()) {
+            result.passed = false;
+            result.message = "typed_layer initial_event references unknown event_type: " + event.event_type_ref;
+            return result;
+        }
+        if (!std::isfinite(event.timestamp) || event.timestamp < 0.0) {
+            result.passed = false;
+            result.message = "typed_layer initial_event timestamp must be finite and >= 0";
+            return result;
+        }
+        if (event.timestamp > layer.world.duration) {
+            result.passed = false;
+            result.message = "typed_layer initial_event timestamp exceeds world.duration";
+            return result;
+        }
+
+        const auto& schema_fields = event_payload_fields[event.event_type_ref];
+        for (const auto& [field_name, value] : event.payload) {
+            const auto field_it = schema_fields.find(field_name);
+            if (field_it == schema_fields.end()) {
+                result.passed = false;
+                result.message = "typed_layer initial_event writes undeclared payload field '" + field_name +
+                                 "' on event_type " + event.event_type_ref;
+                return result;
+            }
+            if (!typed_scalar_matches(value, field_it->second)) {
+                result.passed = false;
+                result.message = "typed_layer initial_event payload type mismatch for " + event.event_type_ref +
+                                 "." + field_name;
+                return result;
+            }
+        }
+    }
+
+    std::set<std::string> system_ids;
+    for (const auto& system : layer.systems) {
+        if (system.system_id.empty()) {
+            result.passed = false;
+            result.message = "typed_layer system_id cannot be empty";
+            return result;
+        }
+        if (!system_ids.insert(system.system_id).second) {
+            result.passed = false;
+            result.message = "Duplicate typed_layer system_id: " + system.system_id;
+            return result;
+        }
+        if (system.triggered_by.empty()) {
+            result.passed = false;
+            result.message = "typed_layer system triggered_by must not be empty for " + system.system_id;
+            return result;
+        }
+        for (const auto& trigger : system.triggered_by) {
+            if (event_type_ids.find(trigger) == event_type_ids.end()) {
+                result.passed = false;
+                result.message = "typed_layer system " + system.system_id +
+                                 " references unknown event_type trigger: " + trigger;
+                return result;
+            }
+        }
+
+        const bool kind_per_entity = (system.kind == "per_entity");
+        const bool kind_pair = (system.kind == "pair");
+        const bool kind_per_relation = (system.kind == "per_relation");
+        if (!kind_per_entity && !kind_pair && !kind_per_relation) {
+            result.passed = false;
+            result.message = "typed_layer system " + system.system_id + " has unknown kind: " + system.kind;
+            return result;
+        }
+
+        if ((kind_per_entity || kind_pair) && !system.entity_type_ref.has_value()) {
+            result.passed = false;
+            result.message = "typed_layer system " + system.system_id + " requires entity_type for kind " + system.kind;
+            return result;
+        }
+        if (kind_per_relation && !system.relation_type_ref.has_value()) {
+            result.passed = false;
+            result.message = "typed_layer system " + system.system_id + " requires relation_type for kind per_relation";
+            return result;
+        }
+
+        if (system.entity_type_ref.has_value() &&
+            entity_type_ids.find(*system.entity_type_ref) == entity_type_ids.end()) {
+            result.passed = false;
+            result.message = "typed_layer system " + system.system_id +
+                             " references unknown entity_type: " + *system.entity_type_ref;
+            return result;
+        }
+        if (system.relation_type_ref.has_value() &&
+            relation_type_ids.find(*system.relation_type_ref) == relation_type_ids.end()) {
+            result.passed = false;
+            result.message = "typed_layer system " + system.system_id +
+                             " references unknown relation_type: " + *system.relation_type_ref;
+            return result;
+        }
+
+        for (const auto& write : system.writes) {
+            const auto parts = split_dotted_target(write.target);
+            if (parts.size() != 2 && parts.size() != 3) {
+                result.passed = false;
+                result.message = "typed_layer system " + system.system_id +
+                                 " write target must be component.field or self.component.field";
+                return result;
+            }
+            std::string role = "self";
+            std::string component_id;
+            std::string field_name;
+            if (parts.size() == 2) {
+                component_id = parts[0];
+                field_name = parts[1];
+            } else {
+                role = parts[0];
+                component_id = parts[1];
+                field_name = parts[2];
+            }
+
+            if (kind_per_entity && role != "self") {
+                result.passed = false;
+                result.message = "typed_layer system " + system.system_id + " cannot write to role '" + role + "'";
+                return result;
+            }
+
+            auto component_it = component_fields.find(component_id);
+            if (component_it == component_fields.end()) {
+                result.passed = false;
+                result.message = "typed_layer system " + system.system_id +
+                                 " writes unknown component_type: " + component_id;
+                return result;
+            }
+            if (component_it->second.find(field_name) == component_it->second.end()) {
+                result.passed = false;
+                result.message = "typed_layer system " + system.system_id +
+                                 " writes undeclared field: " + component_id + "." + field_name;
+                return result;
+            }
+        }
+
+        for (const auto& create_relation : system.create_relations) {
+            if (relation_type_ids.find(create_relation.relation_type_ref) == relation_type_ids.end()) {
+                result.passed = false;
+                result.message = "typed_layer system " + system.system_id +
+                                 " create_relation references unknown relation_type: " + create_relation.relation_type_ref;
+                return result;
+            }
+            if (create_relation.source != "self" && create_relation.source != "other") {
+                result.passed = false;
+                result.message = "typed_layer system " + system.system_id +
+                                 " create_relation source must be 'self' or 'other'";
+                return result;
+            }
+            if (create_relation.target != "self" && create_relation.target != "other") {
+                result.passed = false;
+                result.message = "typed_layer system " + system.system_id +
+                                 " create_relation target must be 'self' or 'other'";
+                return result;
+            }
+
+            const auto& schema_fields = relation_payload_fields[create_relation.relation_type_ref];
+            for (const auto& [field_name, _expr] : create_relation.payload_exprs) {
+                if (schema_fields.find(field_name) == schema_fields.end()) {
+                    result.passed = false;
+                    result.message = "typed_layer system " + system.system_id +
+                                     " create_relation writes undeclared payload field '" + field_name + "'";
+                    return result;
+                }
+            }
+        }
+
+        for (const auto& emit_event : system.emit_events) {
+            if (event_type_ids.find(emit_event.event_type_ref) == event_type_ids.end()) {
+                result.passed = false;
+                result.message = "typed_layer system " + system.system_id +
+                                 " emit_event references unknown event_type: " + emit_event.event_type_ref;
+                return result;
+            }
+
+            const auto& schema_fields = event_payload_fields[emit_event.event_type_ref];
+            for (const auto& [field_name, _expr] : emit_event.payload_exprs) {
+                if (schema_fields.find(field_name) == schema_fields.end()) {
+                    result.passed = false;
+                    result.message = "typed_layer system " + system.system_id +
+                                     " emit_event writes undeclared payload field '" + field_name + "'";
+                    return result;
+                }
+            }
+        }
+    }
+
+    result.message = "typed_layer validated";
+    return result;
+}
+
 ValidationResult ScenarioValidator::validate_evaluation_criteria(const schema::ScenarioDefinition& scenario) {
     ValidationResult result;
     result.rule_name = "evaluation_criteria";
@@ -907,6 +1434,38 @@ ValidationResult ScenarioValidator::check_required_fields(const schema::Scenario
         result.message = "Missing required stage data: assumptions";
         return result;
     }
+
+    if (scenario.typed_layer.has_value()) {
+        const auto& typed = *scenario.typed_layer;
+        if (!std::isfinite(typed.world.duration) || typed.world.duration <= 0.0) {
+            result.passed = false;
+            result.message = "typed_layer.world.duration must be finite and > 0";
+            return result;
+        }
+        if (typed.world.max_event_count == 0) {
+            result.passed = false;
+            result.message = "typed_layer.world.max_event_count must be > 0";
+            return result;
+        }
+        if (typed.component_types.empty()) {
+            result.passed = false;
+            result.message = "typed_layer.component_types must not be empty";
+            return result;
+        }
+        if (typed.entity_types.empty()) {
+            result.passed = false;
+            result.message = "typed_layer.entity_types must not be empty";
+            return result;
+        }
+        if (typed.entities.empty()) {
+            result.passed = false;
+            result.message = "typed_layer.entities must not be empty";
+            return result;
+        }
+        result.message = "All required fields present";
+        return result;
+    }
+
     if (scenario.entities.empty()) {
         result.passed = false;
         result.message = "Missing required stage data: entities";

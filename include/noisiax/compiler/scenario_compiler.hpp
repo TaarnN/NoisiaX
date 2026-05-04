@@ -81,6 +81,150 @@ struct CompiledAgentLayer {
 };
 
 /**
+ * @brief Compiled typed-layer field storage for a single component field.
+ */
+struct CompiledTypedComponentFieldStorage {
+    std::string field_name;
+    schema::TypedFieldType type = schema::TypedFieldType::FLOAT;
+    std::variant<std::vector<int64_t>, std::vector<double>, std::vector<bool>, std::vector<std::string>> initial_buffer;
+};
+
+/**
+ * @brief Compiled component type tables for v3 typed layer.
+ */
+struct CompiledTypedComponentType {
+    std::string component_type_id;
+    std::vector<CompiledTypedComponentFieldStorage> fields;
+    std::map<std::string, std::size_t> field_index;
+    std::vector<int32_t> entity_to_instance;
+    std::vector<int32_t> instance_to_entity;
+};
+
+/**
+ * @brief Compiled entity type tables for v3 typed layer.
+ */
+struct CompiledTypedEntityType {
+    std::string entity_type_id;
+    std::vector<std::size_t> component_type_indices;
+};
+
+/**
+ * @brief Compiled relation type tables for v3 typed layer.
+ */
+struct CompiledTypedRelationType {
+    std::string relation_type_id;
+    bool directed = false;
+    std::optional<std::size_t> max_per_entity;
+    std::optional<std::size_t> max_total;
+    std::vector<schema::ComponentFieldSchema> payload_fields;
+    std::map<std::string, std::size_t> payload_field_index;
+};
+
+/**
+ * @brief Compiled relation instance record.
+ */
+struct CompiledTypedRelationInstance {
+    std::size_t relation_type_index = 0;
+    std::size_t source_entity_index = 0;
+    std::size_t target_entity_index = 0;
+    std::optional<double> expires_at;
+    std::map<std::string, schema::TypedScalarValue> payload;
+};
+
+/**
+ * @brief Compiled event type tables for v3 typed layer.
+ */
+struct CompiledTypedEventType {
+    std::string event_type_id;
+    std::vector<schema::ComponentFieldSchema> payload_fields;
+    std::map<std::string, std::size_t> payload_field_index;
+};
+
+/**
+ * @brief Compiled initial event instance.
+ */
+struct CompiledTypedInitialEvent {
+    std::size_t event_type_index = 0;
+    double timestamp = 0.0;
+    int priority = 0;
+    std::string event_handle;
+    std::map<std::string, schema::TypedScalarValue> payload;
+};
+
+enum class CompiledTypedSystemKind {
+    PER_ENTITY,
+    PAIR,
+    PER_RELATION
+};
+
+enum class CompiledTypedEntityRole {
+    SELF,
+    OTHER
+};
+
+struct CompiledTypedSystemWrite {
+    CompiledTypedEntityRole role = CompiledTypedEntityRole::SELF;
+    std::size_t component_type_index = 0;
+    std::size_t field_index = 0;
+    schema::TypedFieldType field_type = schema::TypedFieldType::FLOAT;
+    std::string expr;
+    std::optional<std::string> when;
+};
+
+struct CompiledTypedSystemCreateRelation {
+    std::size_t relation_type_index = 0;
+    CompiledTypedEntityRole source_role = CompiledTypedEntityRole::SELF;
+    CompiledTypedEntityRole target_role = CompiledTypedEntityRole::OTHER;
+    std::optional<std::string> expires_after;
+    std::map<std::string, std::string> payload_exprs;
+    std::optional<std::string> when;
+};
+
+struct CompiledTypedSystemEmitEvent {
+    std::size_t event_type_index = 0;
+    std::optional<std::string> timestamp;
+    int priority = 0;
+    std::map<std::string, std::string> payload_exprs;
+    std::optional<std::string> when;
+};
+
+/**
+ * @brief Compiled typed system definition.
+ */
+struct CompiledTypedSystem {
+    std::string system_id;
+    CompiledTypedSystemKind kind = CompiledTypedSystemKind::PER_ENTITY;
+    std::vector<std::size_t> trigger_event_type_indices;
+    std::optional<std::size_t> entity_type_index;
+    std::optional<std::size_t> relation_type_index;
+    std::optional<std::string> where;
+    std::vector<CompiledTypedSystemWrite> writes;
+    std::vector<CompiledTypedSystemCreateRelation> create_relations;
+    std::vector<CompiledTypedSystemEmitEvent> emit_events;
+};
+
+/**
+ * @brief Compiled typed-layer artifact for v3 runtime.
+ */
+struct CompiledTypedLayer {
+    schema::TypedWorldDescriptor world;
+    std::vector<CompiledTypedComponentType> component_types;
+    std::vector<CompiledTypedEntityType> entity_types;
+    std::vector<std::string> entity_ids;
+    std::vector<std::size_t> entity_type_index_by_entity;
+    std::map<std::string, std::size_t> component_type_index;
+    std::map<std::string, std::size_t> entity_type_index;
+    std::map<std::string, std::size_t> entity_index;
+    std::vector<CompiledTypedRelationType> relation_types;
+    std::map<std::string, std::size_t> relation_type_index;
+    std::vector<CompiledTypedRelationInstance> relations;
+    std::vector<CompiledTypedEventType> event_types;
+    std::map<std::string, std::size_t> event_type_index;
+    std::vector<CompiledTypedInitialEvent> initial_events;
+    std::vector<CompiledTypedSystem> systems;
+};
+
+/**
  * @brief Compiled scenario artifact - output from ScenarioCompiler
  */
 struct CompiledScenario {
@@ -95,6 +239,7 @@ struct CompiledScenario {
     std::vector<ScheduledEvent> event_queue;
     std::vector<ConstraintProgram> constraint_programs;
     std::optional<CompiledAgentLayer> agent_layer;
+    std::optional<CompiledTypedLayer> typed_layer;
     
     // Pre-registered propagation functions mapping
     std::map<std::string, std::function<void(double&, const double&, double)>> propagation_functions;

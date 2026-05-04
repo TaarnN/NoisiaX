@@ -136,12 +136,86 @@ struct FinalStateSnapshot {
     bool operator==(const FinalStateSnapshot& other) const = default;
 };
 
+struct TypedEntityComponentFinalState {
+    std::string component_type_id;
+    std::map<std::string, schema::TypedScalarValue> fields;
+
+    bool operator==(const TypedEntityComponentFinalState& other) const = default;
+};
+
+struct TypedEntityFinalState {
+    std::string entity_id;
+    std::string entity_type_id;
+    std::vector<TypedEntityComponentFinalState> components;
+
+    bool operator==(const TypedEntityFinalState& other) const = default;
+};
+
+struct TypedRelationFinalState {
+    std::string relation_type_id;
+    std::string source_entity_id;
+    std::string target_entity_id;
+    std::optional<double> expires_at;
+    std::map<std::string, schema::TypedScalarValue> payload;
+
+    bool operator==(const TypedRelationFinalState& other) const = default;
+};
+
+struct TypedFinalStateSnapshot {
+    std::vector<TypedEntityFinalState> entities;
+    std::vector<TypedRelationFinalState> relations;
+    std::map<std::string, std::string> summary;
+    std::string state_fingerprint;
+
+    bool operator==(const TypedFinalStateSnapshot& other) const = default;
+};
+
+struct TypedSystemWriteTrace {
+    std::string entity_id;
+    std::string component_type_id;
+    std::string field_name;
+    std::string old_value;
+    std::string new_value;
+
+    bool operator==(const TypedSystemWriteTrace& other) const = default;
+};
+
+struct TypedSystemCreateRelationTrace {
+    std::string relation_type_id;
+    std::string source_entity_id;
+    std::string target_entity_id;
+
+    bool operator==(const TypedSystemCreateRelationTrace& other) const = default;
+};
+
+struct TypedSystemEmitEventTrace {
+    std::string event_type_id;
+    uint64_t event_id = 0;
+
+    bool operator==(const TypedSystemEmitEventTrace& other) const = default;
+};
+
+struct TypedSystemTrace {
+    uint64_t event_id = 0;
+    std::string system_id;
+    double timestamp = 0.0;
+    std::vector<std::string> matched_entity_ids;
+    std::vector<TypedSystemWriteTrace> writes;
+    std::vector<TypedSystemCreateRelationTrace> created_relations;
+    std::vector<TypedSystemEmitEventTrace> emitted_events;
+    std::vector<RandomDrawTrace> random_draws;
+
+    bool operator==(const TypedSystemTrace& other) const = default;
+};
+
 struct RunResult {
     schema::ScenarioReport report;
     FinalStateSnapshot final_state;
     std::vector<EventTrace> events;
     std::vector<DecisionTrace> decisions;
     std::vector<StateChangeTrace> state_changes;
+    std::optional<TypedFinalStateSnapshot> typed_final_state;
+    std::vector<TypedSystemTrace> typed_system_traces;
 
     bool operator==(const RunResult& other) const = default;
 };

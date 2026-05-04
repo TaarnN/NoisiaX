@@ -1,5 +1,6 @@
 #include "noisiax/noisiax.hpp"
 #include "noisiax/engine/agent_runtime.hpp"
+#include "noisiax/engine/typed_runtime.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -723,6 +724,14 @@ compiler::CompiledScenario compile_scenario(const schema::ScenarioDefinition& sc
 }
 
 schema::ScenarioReport run_scenario(const compiler::CompiledScenario& compiled) {
+    if (compiled.typed_layer.has_value()) {
+        RunOptions options;
+        options.trace_level = TraceLevel::NONE;
+        options.include_final_state = false;
+        options.include_causal_graph = false;
+        return engine::run_typed_layer_scenario(compiled, options).report;
+    }
+
     if (compiled.agent_layer.has_value()) {
         RunOptions options;
         options.trace_level = TraceLevel::NONE;
@@ -799,6 +808,10 @@ schema::ScenarioReport run_scenario(const std::string& filepath) {
 }
 
 RunResult run_scenario_detailed(const compiler::CompiledScenario& compiled, const RunOptions& options) {
+    if (compiled.typed_layer.has_value()) {
+        return engine::run_typed_layer_scenario(compiled, options);
+    }
+
     if (compiled.agent_layer.has_value()) {
         return engine::run_agent_layer_scenario(compiled, options);
     }

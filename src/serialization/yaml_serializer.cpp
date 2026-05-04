@@ -162,6 +162,24 @@ static schema::VariableType string_to_variable_type(const std::string& str) {
     throw std::runtime_error("Unknown variable type: " + str);
 }
 
+static std::string typed_field_type_to_string(schema::TypedFieldType type) {
+    switch (type) {
+        case schema::TypedFieldType::INTEGER: return "INTEGER";
+        case schema::TypedFieldType::FLOAT: return "FLOAT";
+        case schema::TypedFieldType::BOOLEAN: return "BOOLEAN";
+        case schema::TypedFieldType::STRING: return "STRING";
+    }
+    return "UNKNOWN";
+}
+
+static schema::TypedFieldType string_to_typed_field_type(const std::string& str) {
+    if (str == "INTEGER") return schema::TypedFieldType::INTEGER;
+    if (str == "FLOAT") return schema::TypedFieldType::FLOAT;
+    if (str == "BOOLEAN") return schema::TypedFieldType::BOOLEAN;
+    if (str == "STRING") return schema::TypedFieldType::STRING;
+    throw std::runtime_error("Unknown typed field type: " + str);
+}
+
 // Helper to convert ValidationLevel enum to string
 static std::string validation_level_to_string(schema::ValidationLevel level) {
     switch (level) {
@@ -178,6 +196,27 @@ static schema::ValidationLevel string_to_validation_level(const std::string& str
     if (str == "WARN") return schema::ValidationLevel::WARN;
     if (str == "AUTO_CORRECT") return schema::ValidationLevel::AUTO_CORRECT;
     throw std::runtime_error("Unknown validation level: " + str);
+}
+
+static schema::TypedScalarValue parse_typed_scalar_value(const YAML::Node& node,
+                                                         schema::TypedFieldType type) {
+    try {
+        switch (type) {
+            case schema::TypedFieldType::INTEGER:
+                return node.as<int64_t>();
+            case schema::TypedFieldType::FLOAT:
+                return node.as<double>();
+            case schema::TypedFieldType::BOOLEAN:
+                return node.as<bool>();
+            case schema::TypedFieldType::STRING:
+                return node.as<std::string>();
+        }
+    } catch (...) {
+        // Defer type mismatch handling to ScenarioValidator so it can return a structured error.
+        return node.as<std::string>();
+    }
+
+    return node.as<std::string>();
 }
 
 std::string YamlSerializer::format_value(
@@ -515,6 +554,234 @@ std::string YamlSerializer::serialize(const schema::ScenarioDefinition& scenario
 
         out << YAML::EndMap;
     }
+
+    if (scenario.typed_layer.has_value()) {
+        const auto& layer = *scenario.typed_layer;
+        out << YAML::Key << "typed_layer" << YAML::Value << YAML::BeginMap;
+
+        out << YAML::Key << "world" << YAML::Value << YAML::BeginMap;
+        out << YAML::Key << "duration" << YAML::Value << layer.world.duration;
+        out << YAML::Key << "time_unit" << YAML::Value << layer.world.time_unit;
+        out << YAML::Key << "max_event_count" << YAML::Value << static_cast<uint64_t>(layer.world.max_event_count);
+        if (layer.world.tick_interval.has_value()) {
+            out << YAML::Key << "tick_interval" << YAML::Value << *layer.world.tick_interval;
+        }
+        out << YAML::EndMap;
+
+        out << YAML::Key << "component_types" << YAML::Value << YAML::BeginSeq;
+        for (const auto& component : layer.component_types) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "component_type_id" << YAML::Value << component.component_type_id;
+            out << YAML::Key << "fields" << YAML::Value << YAML::BeginMap;
+            for (const auto& field : component.fields) {
+                out << YAML::Key << field.field_name << YAML::Value << typed_field_type_to_string(field.type);
+            }
+            out << YAML::EndMap;
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;
+
+        out << YAML::Key << "entity_types" << YAML::Value << YAML::BeginSeq;
+        for (const auto& entity_type : layer.entity_types) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "entity_type_id" << YAML::Value << entity_type.entity_type_id;
+            out << YAML::Key << "components" << YAML::Value << YAML::BeginSeq;
+            for (const auto& component_ref : entity_type.components) {
+                out << component_ref;
+            }
+            out << YAML::EndSeq;
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;
+
+        out << YAML::Key << "entities" << YAML::Value << YAML::BeginSeq;
+        for (const auto& entity : layer.entities) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "entity_id" << YAML::Value << entity.entity_id;
+            out << YAML::Key << "entity_type" << YAML::Value << entity.entity_type_ref;
+            out << YAML::Key << "components" << YAML::Value << YAML::BeginMap;
+            for (const auto& [component_id, values] : entity.components) {
+                out << YAML::Key << component_id << YAML::Value << YAML::BeginMap;
+                for (const auto& [field_name, scalar] : values) {
+                    out << YAML::Key << field_name << YAML::Value;
+                    std::visit([&](const auto& v) { out << v; }, scalar);
+                }
+                out << YAML::EndMap;
+            }
+            out << YAML::EndMap;
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;
+
+        out << YAML::Key << "relation_types" << YAML::Value << YAML::BeginSeq;
+        for (const auto& relation_type : layer.relation_types) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "relation_type_id" << YAML::Value << relation_type.relation_type_id;
+            out << YAML::Key << "directed" << YAML::Value << relation_type.directed;
+            if (relation_type.max_per_entity.has_value()) {
+                out << YAML::Key << "max_per_entity" << YAML::Value
+                    << static_cast<uint64_t>(*relation_type.max_per_entity);
+            }
+            if (relation_type.max_total.has_value()) {
+                out << YAML::Key << "max_total" << YAML::Value << static_cast<uint64_t>(*relation_type.max_total);
+            }
+            if (!relation_type.payload_fields.empty()) {
+                out << YAML::Key << "payload_fields" << YAML::Value << YAML::BeginMap;
+                for (const auto& field : relation_type.payload_fields) {
+                    out << YAML::Key << field.field_name << YAML::Value << typed_field_type_to_string(field.type);
+                }
+                out << YAML::EndMap;
+            }
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;
+
+        out << YAML::Key << "relations" << YAML::Value << YAML::BeginSeq;
+        for (const auto& relation : layer.relations) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "relation_type" << YAML::Value << relation.relation_type_ref;
+            out << YAML::Key << "source" << YAML::Value << relation.source_entity_ref;
+            out << YAML::Key << "target" << YAML::Value << relation.target_entity_ref;
+            if (relation.expires_at.has_value()) {
+                out << YAML::Key << "expires_at" << YAML::Value << *relation.expires_at;
+            }
+            if (!relation.payload.empty()) {
+                out << YAML::Key << "payload" << YAML::Value << YAML::BeginMap;
+                for (const auto& [key, scalar] : relation.payload) {
+                    out << YAML::Key << key << YAML::Value;
+                    std::visit([&](const auto& v) { out << v; }, scalar);
+                }
+                out << YAML::EndMap;
+            }
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;
+
+        out << YAML::Key << "event_types" << YAML::Value << YAML::BeginSeq;
+        for (const auto& event_type : layer.event_types) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "event_type_id" << YAML::Value << event_type.event_type_id;
+            if (!event_type.payload_fields.empty()) {
+                out << YAML::Key << "payload_fields" << YAML::Value << YAML::BeginMap;
+                for (const auto& field : event_type.payload_fields) {
+                    out << YAML::Key << field.field_name << YAML::Value << typed_field_type_to_string(field.type);
+                }
+                out << YAML::EndMap;
+            }
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;
+
+        out << YAML::Key << "initial_events" << YAML::Value << YAML::BeginSeq;
+        for (const auto& event : layer.initial_events) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "event_type" << YAML::Value << event.event_type_ref;
+            out << YAML::Key << "timestamp" << YAML::Value << event.timestamp;
+            out << YAML::Key << "priority" << YAML::Value << event.priority;
+            if (!event.event_handle.empty()) {
+                out << YAML::Key << "event_handle" << YAML::Value << event.event_handle;
+            }
+            if (!event.payload.empty()) {
+                out << YAML::Key << "payload" << YAML::Value << YAML::BeginMap;
+                for (const auto& [key, scalar] : event.payload) {
+                    out << YAML::Key << key << YAML::Value;
+                    std::visit([&](const auto& v) { out << v; }, scalar);
+                }
+                out << YAML::EndMap;
+            }
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;
+
+        out << YAML::Key << "systems" << YAML::Value << YAML::BeginSeq;
+        for (const auto& system : layer.systems) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "system_id" << YAML::Value << system.system_id;
+            out << YAML::Key << "triggered_by" << YAML::Value << YAML::BeginSeq;
+            for (const auto& trigger : system.triggered_by) {
+                out << trigger;
+            }
+            out << YAML::EndSeq;
+            out << YAML::Key << "kind" << YAML::Value << system.kind;
+            if (system.entity_type_ref.has_value()) {
+                out << YAML::Key << "entity_type" << YAML::Value << *system.entity_type_ref;
+            }
+            if (system.relation_type_ref.has_value()) {
+                out << YAML::Key << "relation_type" << YAML::Value << *system.relation_type_ref;
+            }
+            if (system.where.has_value()) {
+                out << YAML::Key << "where" << YAML::Value << *system.where;
+            }
+
+            if (!system.writes.empty()) {
+                out << YAML::Key << "writes" << YAML::Value << YAML::BeginSeq;
+                for (const auto& write : system.writes) {
+                    out << YAML::BeginMap;
+                    out << YAML::Key << "target" << YAML::Value << write.target;
+                    out << YAML::Key << "expr" << YAML::Value << write.expr;
+                    if (write.when.has_value()) {
+                        out << YAML::Key << "when" << YAML::Value << *write.when;
+                    }
+                    out << YAML::EndMap;
+                }
+                out << YAML::EndSeq;
+            }
+
+            if (!system.create_relations.empty()) {
+                out << YAML::Key << "create_relations" << YAML::Value << YAML::BeginSeq;
+                for (const auto& create_relation : system.create_relations) {
+                    out << YAML::BeginMap;
+                    out << YAML::Key << "relation_type" << YAML::Value << create_relation.relation_type_ref;
+                    out << YAML::Key << "source" << YAML::Value << create_relation.source;
+                    out << YAML::Key << "target" << YAML::Value << create_relation.target;
+                    if (create_relation.expires_after.has_value()) {
+                        out << YAML::Key << "expires_after" << YAML::Value << *create_relation.expires_after;
+                    }
+                    if (create_relation.when.has_value()) {
+                        out << YAML::Key << "when" << YAML::Value << *create_relation.when;
+                    }
+                    if (!create_relation.payload_exprs.empty()) {
+                        out << YAML::Key << "payload" << YAML::Value << YAML::BeginMap;
+                        for (const auto& [key, expr] : create_relation.payload_exprs) {
+                            out << YAML::Key << key << YAML::Value << expr;
+                        }
+                        out << YAML::EndMap;
+                    }
+                    out << YAML::EndMap;
+                }
+                out << YAML::EndSeq;
+            }
+
+            if (!system.emit_events.empty()) {
+                out << YAML::Key << "emit_events" << YAML::Value << YAML::BeginSeq;
+                for (const auto& emit_event : system.emit_events) {
+                    out << YAML::BeginMap;
+                    out << YAML::Key << "event_type" << YAML::Value << emit_event.event_type_ref;
+                    if (emit_event.timestamp.has_value()) {
+                        out << YAML::Key << "timestamp" << YAML::Value << *emit_event.timestamp;
+                    }
+                    out << YAML::Key << "priority" << YAML::Value << emit_event.priority;
+                    if (emit_event.when.has_value()) {
+                        out << YAML::Key << "when" << YAML::Value << *emit_event.when;
+                    }
+                    if (!emit_event.payload_exprs.empty()) {
+                        out << YAML::Key << "payload" << YAML::Value << YAML::BeginMap;
+                        for (const auto& [key, expr] : emit_event.payload_exprs) {
+                            out << YAML::Key << key << YAML::Value << expr;
+                        }
+                        out << YAML::EndMap;
+                    }
+                    out << YAML::EndMap;
+                }
+                out << YAML::EndSeq;
+            }
+
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;
+
+        out << YAML::EndMap;
+    }
     
     // Evaluation criteria
     out << YAML::Key << "evaluation_criteria" << YAML::Value << YAML::BeginSeq;
@@ -585,6 +852,7 @@ schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_c
             "constraints",
             "events",
             "agent_layer",
+            "typed_layer",
             "evaluation_criteria",
             "metadata"
         },
@@ -1001,6 +1269,383 @@ schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_c
         }
 
         scenario.agent_layer = std::move(layer);
+    }
+
+    if (root["typed_layer"]) {
+        validate_allowed_keys(
+            root["typed_layer"],
+            {
+                "world",
+                "component_types",
+                "entity_types",
+                "entities",
+                "relation_types",
+                "relations",
+                "event_types",
+                "initial_events",
+                "systems"
+            },
+            "typed_layer");
+
+        schema::TypedLayerDefinition layer;
+
+        const auto world_node = root["typed_layer"]["world"];
+        if (!world_node) {
+            throw std::runtime_error("typed_layer.world is required when typed_layer is set");
+        }
+        validate_allowed_keys(world_node, {"duration", "time_unit", "max_event_count", "tick_interval"}, "typed_layer.world");
+        layer.world.duration = world_node["duration"].as<double>();
+        layer.world.time_unit = world_node["time_unit"] ? world_node["time_unit"].as<std::string>() : "ticks";
+        layer.world.max_event_count =
+            world_node["max_event_count"] ? world_node["max_event_count"].as<std::size_t>() : 100000;
+        if (world_node["tick_interval"]) {
+            layer.world.tick_interval = world_node["tick_interval"].as<double>();
+        }
+
+        if (const auto components_node = root["typed_layer"]["component_types"]) {
+            for (const auto& node : components_node) {
+                validate_allowed_keys(node, {"component_type_id", "fields"}, "typed_layer.component_type");
+
+                schema::ComponentTypeDefinition component;
+                component.component_type_id = node["component_type_id"].as<std::string>();
+
+                const auto fields_node = node["fields"];
+                if (!fields_node || !fields_node.IsMap()) {
+                    throw std::runtime_error("typed_layer.component_types.fields must be a map for " +
+                                             component.component_type_id);
+                }
+
+                for (const auto& entry : fields_node) {
+                    schema::ComponentFieldSchema field;
+                    field.field_name = entry.first.as<std::string>();
+                    field.type = string_to_typed_field_type(entry.second.as<std::string>());
+                    component.fields.push_back(std::move(field));
+                }
+
+                layer.component_types.push_back(std::move(component));
+            }
+        }
+
+        std::map<std::string, std::map<std::string, schema::TypedFieldType>> component_field_types;
+        for (const auto& component : layer.component_types) {
+            for (const auto& field : component.fields) {
+                component_field_types[component.component_type_id][field.field_name] = field.type;
+            }
+        }
+
+        if (const auto entity_types_node = root["typed_layer"]["entity_types"]) {
+            for (const auto& node : entity_types_node) {
+                validate_allowed_keys(node, {"entity_type_id", "components"}, "typed_layer.entity_type");
+                schema::TypedEntityTypeDefinition entity_type;
+                entity_type.entity_type_id = node["entity_type_id"].as<std::string>();
+                if (const auto comps_node = node["components"]) {
+                    for (const auto& comp : comps_node) {
+                        entity_type.components.push_back(comp.as<std::string>());
+                    }
+                }
+                layer.entity_types.push_back(std::move(entity_type));
+            }
+        }
+
+        if (const auto relation_types_node = root["typed_layer"]["relation_types"]) {
+            for (const auto& node : relation_types_node) {
+                validate_allowed_keys(
+                    node,
+                    {"relation_type_id", "directed", "max_per_entity", "max_total", "payload_fields"},
+                    "typed_layer.relation_type");
+
+                schema::RelationTypeDefinition relation_type;
+                relation_type.relation_type_id = node["relation_type_id"].as<std::string>();
+                relation_type.directed = node["directed"] ? node["directed"].as<bool>() : false;
+                if (node["max_per_entity"]) {
+                    relation_type.max_per_entity = node["max_per_entity"].as<std::size_t>();
+                }
+                if (node["max_total"]) {
+                    relation_type.max_total = node["max_total"].as<std::size_t>();
+                }
+                if (const auto payload_fields_node = node["payload_fields"]) {
+                    if (!payload_fields_node.IsMap()) {
+                        throw std::runtime_error("typed_layer.relation_types.payload_fields must be a map");
+                    }
+                    for (const auto& entry : payload_fields_node) {
+                        schema::ComponentFieldSchema field;
+                        field.field_name = entry.first.as<std::string>();
+                        field.type = string_to_typed_field_type(entry.second.as<std::string>());
+                        relation_type.payload_fields.push_back(std::move(field));
+                    }
+                }
+                layer.relation_types.push_back(std::move(relation_type));
+            }
+        }
+
+        std::map<std::string, std::map<std::string, schema::TypedFieldType>> relation_payload_types;
+        for (const auto& relation_type : layer.relation_types) {
+            for (const auto& field : relation_type.payload_fields) {
+                relation_payload_types[relation_type.relation_type_id][field.field_name] = field.type;
+            }
+        }
+
+        if (const auto event_types_node = root["typed_layer"]["event_types"]) {
+            for (const auto& node : event_types_node) {
+                validate_allowed_keys(node, {"event_type_id", "payload_fields"}, "typed_layer.event_type");
+                schema::TypedEventTypeDefinition event_type;
+                event_type.event_type_id = node["event_type_id"].as<std::string>();
+                if (const auto payload_fields_node = node["payload_fields"]) {
+                    if (!payload_fields_node.IsMap()) {
+                        throw std::runtime_error("typed_layer.event_types.payload_fields must be a map");
+                    }
+                    for (const auto& entry : payload_fields_node) {
+                        schema::ComponentFieldSchema field;
+                        field.field_name = entry.first.as<std::string>();
+                        field.type = string_to_typed_field_type(entry.second.as<std::string>());
+                        event_type.payload_fields.push_back(std::move(field));
+                    }
+                }
+                layer.event_types.push_back(std::move(event_type));
+            }
+        }
+
+        std::map<std::string, std::map<std::string, schema::TypedFieldType>> event_payload_types;
+        for (const auto& event_type : layer.event_types) {
+            for (const auto& field : event_type.payload_fields) {
+                event_payload_types[event_type.event_type_id][field.field_name] = field.type;
+            }
+        }
+
+        if (const auto entities_node = root["typed_layer"]["entities"]) {
+            for (const auto& node : entities_node) {
+                validate_allowed_keys(node, {"entity_id", "entity_type", "components"}, "typed_layer.entity");
+
+                schema::TypedEntityInstanceDefinition entity;
+                entity.entity_id = node["entity_id"].as<std::string>();
+                entity.entity_type_ref = node["entity_type"].as<std::string>();
+
+                const auto comps_node = node["components"];
+                if (comps_node) {
+                    if (!comps_node.IsMap()) {
+                        throw std::runtime_error("typed_layer.entities.components must be a map for " +
+                                                 entity.entity_id);
+                    }
+
+                    for (const auto& comp_entry : comps_node) {
+                        const std::string component_id = comp_entry.first.as<std::string>();
+                        const auto values_node = comp_entry.second;
+                        if (!values_node.IsMap()) {
+                            throw std::runtime_error("typed_layer.entities.components." + component_id +
+                                                     " must be a map for " + entity.entity_id);
+                        }
+
+                        const auto component_it = component_field_types.find(component_id);
+                        for (const auto& field_entry : values_node) {
+                            const std::string field_name = field_entry.first.as<std::string>();
+
+                            if (component_it == component_field_types.end()) {
+                                entity.components[component_id][field_name] = field_entry.second.as<std::string>();
+                                continue;
+                            }
+
+                            const auto field_it = component_it->second.find(field_name);
+                            if (field_it == component_it->second.end()) {
+                                entity.components[component_id][field_name] = field_entry.second.as<std::string>();
+                                continue;
+                            }
+
+                            entity.components[component_id][field_name] =
+                                parse_typed_scalar_value(field_entry.second, field_it->second);
+                        }
+                    }
+                }
+
+                layer.entities.push_back(std::move(entity));
+            }
+        }
+
+        if (const auto relations_node = root["typed_layer"]["relations"]) {
+            for (const auto& node : relations_node) {
+                validate_allowed_keys(node, {"relation_type", "source", "target", "expires_at", "payload"}, "typed_layer.relation");
+
+                schema::RelationInstanceDefinition relation;
+                relation.relation_type_ref = node["relation_type"].as<std::string>();
+                relation.source_entity_ref = node["source"].as<std::string>();
+                relation.target_entity_ref = node["target"].as<std::string>();
+                if (node["expires_at"]) {
+                    relation.expires_at = node["expires_at"].as<double>();
+                }
+
+                if (const auto payload_node = node["payload"]) {
+                    if (!payload_node.IsMap()) {
+                        throw std::runtime_error("typed_layer.relations.payload must be a map");
+                    }
+                    const auto relation_type_it = relation_payload_types.find(relation.relation_type_ref);
+                    for (const auto& entry : payload_node) {
+                        const std::string field_name = entry.first.as<std::string>();
+                        if (relation_type_it == relation_payload_types.end()) {
+                            relation.payload[field_name] = entry.second.as<std::string>();
+                            continue;
+                        }
+                        const auto field_it = relation_type_it->second.find(field_name);
+                        if (field_it == relation_type_it->second.end()) {
+                            relation.payload[field_name] = entry.second.as<std::string>();
+                            continue;
+                        }
+                        relation.payload[field_name] = parse_typed_scalar_value(entry.second, field_it->second);
+                    }
+                }
+
+                layer.relations.push_back(std::move(relation));
+            }
+        }
+
+        if (const auto initial_events_node = root["typed_layer"]["initial_events"]) {
+            for (const auto& node : initial_events_node) {
+                validate_allowed_keys(
+                    node,
+                    {"event_type", "timestamp", "priority", "event_handle", "payload"},
+                    "typed_layer.initial_event");
+
+                schema::TypedInitialEvent event;
+                event.event_type_ref = node["event_type"].as<std::string>();
+                event.timestamp = node["timestamp"].as<double>();
+                event.priority = node["priority"] ? node["priority"].as<int>() : 0;
+                event.event_handle = node["event_handle"] ? node["event_handle"].as<std::string>() : "";
+
+                if (const auto payload_node = node["payload"]) {
+                    if (!payload_node.IsMap()) {
+                        throw std::runtime_error("typed_layer.initial_events.payload must be a map");
+                    }
+
+                    const auto event_type_it = event_payload_types.find(event.event_type_ref);
+                    for (const auto& entry : payload_node) {
+                        const std::string field_name = entry.first.as<std::string>();
+                        if (event_type_it == event_payload_types.end()) {
+                            event.payload[field_name] = entry.second.as<std::string>();
+                            continue;
+                        }
+                        const auto field_it = event_type_it->second.find(field_name);
+                        if (field_it == event_type_it->second.end()) {
+                            event.payload[field_name] = entry.second.as<std::string>();
+                            continue;
+                        }
+                        event.payload[field_name] = parse_typed_scalar_value(entry.second, field_it->second);
+                    }
+                }
+
+                layer.initial_events.push_back(std::move(event));
+            }
+        }
+
+        if (const auto systems_node = root["typed_layer"]["systems"]) {
+            for (const auto& node : systems_node) {
+                validate_allowed_keys(
+                    node,
+                    {
+                        "system_id",
+                        "triggered_by",
+                        "kind",
+                        "entity_type",
+                        "relation_type",
+                        "where",
+                        "writes",
+                        "create_relations",
+                        "emit_events"
+                    },
+                    "typed_layer.system");
+
+                schema::TypedSystemDefinition system;
+                system.system_id = node["system_id"].as<std::string>();
+                if (const auto triggers_node = node["triggered_by"]) {
+                    for (const auto& trigger : triggers_node) {
+                        system.triggered_by.push_back(trigger.as<std::string>());
+                    }
+                }
+                system.kind = node["kind"] ? node["kind"].as<std::string>() : "per_entity";
+                if (node["entity_type"]) {
+                    system.entity_type_ref = node["entity_type"].as<std::string>();
+                }
+                if (node["relation_type"]) {
+                    system.relation_type_ref = node["relation_type"].as<std::string>();
+                }
+                if (node["where"]) {
+                    system.where = node["where"].as<std::string>();
+                }
+
+                if (const auto writes_node = node["writes"]) {
+                    for (const auto& write_node : writes_node) {
+                        validate_allowed_keys(write_node, {"target", "expr", "when"}, "typed_layer.system.write");
+                        schema::TypedSystemWrite write;
+                        write.target = write_node["target"].as<std::string>();
+                        write.expr = write_node["expr"].as<std::string>();
+                        if (write_node["when"]) {
+                            write.when = write_node["when"].as<std::string>();
+                        }
+                        system.writes.push_back(std::move(write));
+                    }
+                }
+
+                if (const auto create_relations_node = node["create_relations"]) {
+                    for (const auto& cr_node : create_relations_node) {
+                        validate_allowed_keys(
+                            cr_node,
+                            {"relation_type", "source", "target", "expires_after", "payload", "when"},
+                            "typed_layer.system.create_relation");
+
+                        schema::TypedSystemCreateRelation create_relation;
+                        create_relation.relation_type_ref = cr_node["relation_type"].as<std::string>();
+                        create_relation.source = cr_node["source"].as<std::string>();
+                        create_relation.target = cr_node["target"].as<std::string>();
+                        if (cr_node["expires_after"]) {
+                            create_relation.expires_after = cr_node["expires_after"].as<std::string>();
+                        }
+                        if (cr_node["when"]) {
+                            create_relation.when = cr_node["when"].as<std::string>();
+                        }
+                        if (const auto payload_node = cr_node["payload"]) {
+                            if (!payload_node.IsMap()) {
+                                throw std::runtime_error("typed_layer.system.create_relations.payload must be a map");
+                            }
+                            for (const auto& entry : payload_node) {
+                                create_relation.payload_exprs[entry.first.as<std::string>()] =
+                                    entry.second.as<std::string>();
+                            }
+                        }
+                        system.create_relations.push_back(std::move(create_relation));
+                    }
+                }
+
+                if (const auto emit_events_node = node["emit_events"]) {
+                    for (const auto& ee_node : emit_events_node) {
+                        validate_allowed_keys(
+                            ee_node,
+                            {"event_type", "timestamp", "priority", "payload", "when"},
+                            "typed_layer.system.emit_event");
+
+                        schema::TypedSystemEmitEvent emit_event;
+                        emit_event.event_type_ref = ee_node["event_type"].as<std::string>();
+                        if (ee_node["timestamp"]) {
+                            emit_event.timestamp = ee_node["timestamp"].as<std::string>();
+                        }
+                        emit_event.priority = ee_node["priority"] ? ee_node["priority"].as<int>() : 0;
+                        if (ee_node["when"]) {
+                            emit_event.when = ee_node["when"].as<std::string>();
+                        }
+                        if (const auto payload_node = ee_node["payload"]) {
+                            if (!payload_node.IsMap()) {
+                                throw std::runtime_error("typed_layer.system.emit_events.payload must be a map");
+                            }
+                            for (const auto& entry : payload_node) {
+                                emit_event.payload_exprs[entry.first.as<std::string>()] =
+                                    entry.second.as<std::string>();
+                            }
+                        }
+                        system.emit_events.push_back(std::move(emit_event));
+                    }
+                }
+
+                layer.systems.push_back(std::move(system));
+            }
+        }
+
+        scenario.typed_layer = std::move(layer);
     }
     
     // Evaluation criteria
