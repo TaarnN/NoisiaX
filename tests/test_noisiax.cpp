@@ -104,6 +104,47 @@ bool has_positive_queue_penalty(const noisiax::RunResult& result) {
     return false;
 }
 
+const noisiax::TypedEntityFinalState* find_typed_entity(const noisiax::TypedFinalStateSnapshot& snapshot,
+                                                        const std::string& entity_id) {
+    for (const auto& entity : snapshot.entities) {
+        if (entity.entity_id == entity_id) {
+            return &entity;
+        }
+    }
+    return nullptr;
+}
+
+std::optional<noisiax::schema::TypedScalarValue> find_typed_field(const noisiax::TypedFinalStateSnapshot& snapshot,
+                                                                  const std::string& entity_id,
+                                                                  const std::string& component_type_id,
+                                                                  const std::string& field_name) {
+    const auto* entity = find_typed_entity(snapshot, entity_id);
+    if (entity == nullptr) {
+        return std::nullopt;
+    }
+    for (const auto& component : entity->components) {
+        if (component.component_type_id != component_type_id) {
+            continue;
+        }
+        const auto it = component.fields.find(field_name);
+        if (it == component.fields.end()) {
+            return std::nullopt;
+        }
+        return it->second;
+    }
+    return std::nullopt;
+}
+
+double typed_as_double(const noisiax::schema::TypedScalarValue& value) {
+    if (const auto* v = std::get_if<double>(&value)) {
+        return *v;
+    }
+    if (const auto* v_int = std::get_if<int64_t>(&value)) {
+        return static_cast<double>(*v_int);
+    }
+    throw std::runtime_error("Expected numeric TypedScalarValue");
+}
+
 void set_numeric_var(noisiax::engine::SimulationState& state,
                      const noisiax::compiler::CompiledScenario& compiled,
                      const std::string& variable_id,
@@ -540,6 +581,204 @@ void test_v2_max_events_limit_fixture() {
                 "v2 max-events fixture should report the max_events limit clearly");
 }
 
+void test_v3_fixture_validation_and_compilation() {
+    const std::vector<std::string> valid_fixtures = {
+        "v3_particle_motion.yaml",
+        "v3_seeded_branching.yaml",
+        "v3_event_emission.yaml",
+        "v3_relation_decay.yaml",
+        "v3_atom_bonding.yaml",
+        "v3_max_events_limit.yaml",
+        "v3_relation_bound_violation.yaml"
+    };
+
+    for (const auto& fixture : valid_fixtures) {
+        const auto report = noisiax::validate_scenario(scenario_path(fixture).string());
+        expect_true(report.success, fixture + " should validate successfully");
+
+        const auto compiled = noisiax::compile_scenario(scenario_path(fixture).string());
+        expect_true(compiled.typed_layer.has_value(), fixture + " should compile with typed_layer");
+    }
+
+    const auto unknown_component_report =
+        noisiax::validate_scenario(scenario_path("v3_invalid_unknown_component.yaml").string());
+    expect_true(!unknown_component_report.success, "v3 unknown component fixture should fail validation");
+    expect_true(has_error_containing(unknown_component_report, "references unknown component_type"),
+                "v3 unknown component fixture should identify missing component reference");
+
+    const auto type_mismatch_report =
+        noisiax::validate_scenario(scenario_path("v3_invalid_field_type_mismatch.yaml").string());
+    expect_true(!type_mismatch_report.success, "v3 field type mismatch fixture should fail validation");
+    expect_true(has_error_containing(type_mismatch_report, "field type mismatch"),
+                "v3 field type mismatch fixture should identify the mismatch");
+
+    const auto bad_write_report =
+        noisiax::validate_scenario(scenario_path("v3_invalid_write_undeclared_field.yaml").string());
+    expect_true(!bad_write_report.success, "v3 undeclared field write fixture should fail validation");
+    expect_true(has_error_containing(bad_write_report, "writes undeclared field"),
+                "v3 undeclared field write fixture should identify the missing field");
+
+    const auto both_layers_report =
+        noisiax::validate_scenario(scenario_path("v3_invalid_both_layers.yaml").string());
+    expect_true(!both_layers_report.success, "v3 both-layers fixture should fail validation");
+    expect_true(has_error_containing(both_layers_report, "both agent_layer and typed_layer"),
+                "v3 both-layers fixture should reject mixed layer scenarios");
+}
+
+void test_v3_particle_motion_runtime() {
+    noisiax::RunOptions options;
+    options.trace_level = noisiax::TraceLevel::FULL;
+
+    const auto result = noisiax::run_scenario_detailed(
+        scenario_path("v3_particle_motion.yaml").string(),
+        options);
+
+    expect_true(result.report.success, "v3 particle motion should run successfully");
+    expect_true(result.typed_final_state.has_value(), "v3 particle motion should emit typed_final_state");
+    expect_true(!result.state_changes.empty(), "v3 particle motion should trace state changes at FULL trace");
+
+    const auto& snapshot = *result.typed_final_state;
+    const auto p1x = find_typed_field(snapshot, "p1", "Position", "x");
+    const auto p1y = find_typed_field(snapshot, "p1", "Position", "y");
+    const auto p2x = find_typed_field(snapshot, "p2", "Position", "x");
+    const auto p2y = find_typed_field(snapshot, "p2", "Position", "y");
+
+    expect_true(p1x.has_value() && p1y.has_value() && p2x.has_value() && p2y.has_value(),
+                "v3 particle motion should expose Position component fields");
+    if (p1x.has_value() && p1y.has_value()) {
+        expect_true(typed_as_double(*p1x) == 3.0, "p1.Position.x should be 3.0 after 3 ticks");
+        expect_true(typed_as_double(*p1y) == 1.5, "p1.Position.y should be 1.5 after 3 ticks");
+    }
+    if (p2x.has_value() && p2y.has_value()) {
+        expect_true(typed_as_double(*p2x) == 4.0, "p2.Position.x should be 4.0 after 3 ticks");
+        expect_true(typed_as_double(*p2y) == -1.0, "p2.Position.y should remain -1.0");
+    }
+}
+
+void test_v3_seeded_branching_determinism() {
+    noisiax::RunOptions options;
+    options.trace_level = noisiax::TraceLevel::EVENTS;
+
+    const auto first = noisiax::run_scenario_detailed(
+        scenario_path("v3_seeded_branching.yaml").string(),
+        options);
+    const auto second = noisiax::run_scenario_detailed(
+        scenario_path("v3_seeded_branching.yaml").string(),
+        options);
+
+    expect_true(first.report.success && second.report.success, "v3 seeded branching determinism requires successful runs");
+    expect_eq(stat_or_empty(first.report, "state_fingerprint"),
+              stat_or_empty(second.report, "state_fingerprint"),
+              "v3 seeded branching should produce identical state fingerprints for the same seed");
+
+    expect_true(!first.events.empty() && !second.events.empty(), "v3 seeded branching should emit at least one event trace");
+    if (!first.events.empty() && !second.events.empty()) {
+        expect_true(!first.events[0].random_draws.empty() && !second.events[0].random_draws.empty(),
+                    "v3 seeded branching should trace random draws on events");
+        if (!first.events[0].random_draws.empty() && !second.events[0].random_draws.empty()) {
+            expect_true(first.events[0].random_draws[0].raw_u64 == second.events[0].random_draws[0].raw_u64,
+                        "v3 seeded branching should reproduce identical RNG raw_u64 for the same seed");
+        }
+    }
+
+    options.seed_override = 2;
+    const auto different_seed = noisiax::run_scenario_detailed(
+        scenario_path("v3_seeded_branching.yaml").string(),
+        options);
+    expect_true(different_seed.report.success, "v3 seeded branching should run successfully with a seed override");
+    expect_true(!different_seed.events.empty(), "v3 seeded branching should emit events with seed override");
+    if (!first.events.empty() && !first.events[0].random_draws.empty() &&
+        !different_seed.events.empty() && !different_seed.events[0].random_draws.empty()) {
+        expect_true(first.events[0].random_draws[0].raw_u64 != different_seed.events[0].random_draws[0].raw_u64,
+                    "v3 seeded branching RNG raw_u64 should differ across seeds");
+    }
+}
+
+void test_v3_event_emission_fixture() {
+    noisiax::RunOptions options;
+    options.trace_level = noisiax::TraceLevel::EVENTS;
+
+    const auto result = noisiax::run_scenario_detailed(
+        scenario_path("v3_event_emission.yaml").string(),
+        options);
+
+    expect_true(result.report.success, "v3 event emission should run successfully");
+    expect_true(has_event_type(result, "start"), "v3 event emission should record the start event");
+    expect_true(has_event_type(result, "child"), "v3 event emission should record the emitted child event");
+
+    uint64_t start_id = 0;
+    uint64_t child_id = 0;
+    std::vector<uint64_t> child_parents;
+    for (const auto& event : result.events) {
+        if (event.event_type == "start") {
+            start_id = event.event_id;
+        }
+        if (event.event_type == "child") {
+            child_id = event.event_id;
+            child_parents = event.causal_parent_event_ids;
+        }
+    }
+
+    expect_true(start_id != 0 && child_id != 0, "v3 event emission should assign event ids");
+    if (start_id != 0 && !child_parents.empty()) {
+        expect_true(child_parents[0] == start_id, "v3 emitted child event should include the start event as causal parent");
+    }
+}
+
+void test_v3_relation_decay_fixture() {
+    const auto result = noisiax::run_scenario_detailed(
+        scenario_path("v3_relation_decay.yaml").string(),
+        {});
+
+    expect_true(result.report.success, "v3 relation decay should run successfully");
+    expect_true(result.typed_final_state.has_value(), "v3 relation decay should emit typed_final_state");
+    if (result.typed_final_state.has_value()) {
+        expect_true(result.typed_final_state->relations.empty(), "v3 relation decay should expire the initial relation");
+    }
+}
+
+void test_v3_atom_bonding_fixture() {
+    const auto result = noisiax::run_scenario_detailed(
+        scenario_path("v3_atom_bonding.yaml").string(),
+        {});
+
+    expect_true(result.report.success, "v3 atom bonding should run successfully");
+    expect_true(result.typed_final_state.has_value(), "v3 atom bonding should emit typed_final_state");
+    if (result.typed_final_state.has_value()) {
+        expect_true(result.typed_final_state->relations.size() == 1,
+                    "v3 atom bonding should create exactly one bond relation");
+        if (result.typed_final_state->relations.size() == 1) {
+            const auto& bond = result.typed_final_state->relations[0];
+            expect_true(bond.relation_type_id == "bond", "v3 atom bonding should create a bond relation_type_id");
+            expect_true(bond.source_entity_id == "a1" && bond.target_entity_id == "a2",
+                        "v3 atom bonding should bond a1 -> a2 deterministically");
+        }
+    }
+}
+
+void test_v3_max_events_limit_fixture() {
+    noisiax::RunOptions options;
+    options.trace_level = noisiax::TraceLevel::EVENTS;
+
+    const auto result = noisiax::run_scenario_detailed(
+        scenario_path("v3_max_events_limit.yaml").string(),
+        options);
+
+    expect_true(!result.report.success, "v3 max-events fixture should halt with a runtime failure");
+    expect_true(has_error_containing(result.report, "max_events limit reached"),
+                "v3 max-events fixture should report the max_events limit clearly");
+}
+
+void test_v3_relation_bound_violation_fixture() {
+    const auto result = noisiax::run_scenario_detailed(
+        scenario_path("v3_relation_bound_violation.yaml").string(),
+        {});
+
+    expect_true(!result.report.success, "v3 relation bound violation should halt with a runtime failure");
+    expect_true(has_error_containing(result.report, "Relation bound exceeded"),
+                "v3 relation bound violation should report the relation bound clearly");
+}
+
 }  // namespace
 
 int main() {
@@ -562,6 +801,14 @@ int main() {
     test_v2_budget_stock_pressure_fixture();
     test_v2_queue_capacity_fixture();
     test_v2_max_events_limit_fixture();
+    test_v3_fixture_validation_and_compilation();
+    test_v3_particle_motion_runtime();
+    test_v3_seeded_branching_determinism();
+    test_v3_event_emission_fixture();
+    test_v3_relation_decay_fixture();
+    test_v3_atom_bonding_fixture();
+    test_v3_max_events_limit_fixture();
+    test_v3_relation_bound_violation_fixture();
 
     if (failures == 0) {
         std::cout << "All tests passed\n";

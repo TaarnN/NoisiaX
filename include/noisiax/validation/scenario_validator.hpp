@@ -69,6 +69,7 @@ private:
     ValidationResult validate_constraints(const schema::ScenarioDefinition& scenario);
     ValidationResult validate_events(const schema::ScenarioDefinition& scenario);
     ValidationResult validate_agent_layer(const schema::ScenarioDefinition& scenario);
+    ValidationResult validate_typed_layer(const schema::ScenarioDefinition& scenario);
     ValidationResult validate_evaluation_criteria(const schema::ScenarioDefinition& scenario);
     
     // Cross-cutting validation checks

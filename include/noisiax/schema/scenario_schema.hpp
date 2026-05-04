@@ -31,6 +31,18 @@ enum class VariableType {
 };
 
 /**
+ * @brief Scalar field types for the optional v3 typed simulation layer.
+ */
+enum class TypedFieldType {
+    INTEGER,
+    FLOAT,
+    BOOLEAN,
+    STRING
+};
+
+using TypedScalarValue = std::variant<int64_t, double, std::string, bool>;
+
+/**
  * @brief Unit specification for variables
  */
 struct UnitSpec {
@@ -264,6 +276,182 @@ struct AgentLayerDefinition {
 };
 
 /**
+ * @brief World-level settings for the optional v3 typed simulation layer.
+ */
+struct TypedWorldDescriptor {
+    double duration = 0.0;
+    std::string time_unit = "ticks";
+    std::size_t max_event_count = 100000;
+    std::optional<double> tick_interval;
+
+    bool operator==(const TypedWorldDescriptor& other) const = default;
+};
+
+/**
+ * @brief A named field inside a component type.
+ */
+struct ComponentFieldSchema {
+    std::string field_name;
+    TypedFieldType type = TypedFieldType::FLOAT;
+
+    bool operator==(const ComponentFieldSchema& other) const = default;
+};
+
+/**
+ * @brief Component type definition - reusable typed data shapes.
+ */
+struct ComponentTypeDefinition {
+    std::string component_type_id;
+    std::vector<ComponentFieldSchema> fields;
+
+    bool operator==(const ComponentTypeDefinition& other) const = default;
+};
+
+/**
+ * @brief Entity type definition - user-defined types composed from components.
+ */
+struct TypedEntityTypeDefinition {
+    std::string entity_type_id;
+    std::vector<std::string> components;
+
+    bool operator==(const TypedEntityTypeDefinition& other) const = default;
+};
+
+/**
+ * @brief Entity instance definition for typed layer.
+ *
+ * components: component_type_id -> field_name -> scalar value.
+ */
+struct TypedEntityInstanceDefinition {
+    std::string entity_id;
+    std::string entity_type_ref;
+    std::map<std::string, std::map<std::string, TypedScalarValue>> components;
+
+    bool operator==(const TypedEntityInstanceDefinition& other) const = default;
+};
+
+/**
+ * @brief Relation type schema for typed layer.
+ */
+struct RelationTypeDefinition {
+    std::string relation_type_id;
+    bool directed = false;
+    std::optional<std::size_t> max_per_entity;
+    std::optional<std::size_t> max_total;
+    std::vector<ComponentFieldSchema> payload_fields;
+
+    bool operator==(const RelationTypeDefinition& other) const = default;
+};
+
+/**
+ * @brief Relation instance definition for typed layer.
+ */
+struct RelationInstanceDefinition {
+    std::string relation_type_ref;
+    std::string source_entity_ref;
+    std::string target_entity_ref;
+    std::optional<double> expires_at;
+    std::map<std::string, TypedScalarValue> payload;
+
+    bool operator==(const RelationInstanceDefinition& other) const = default;
+};
+
+/**
+ * @brief Event type schema for typed layer.
+ */
+struct TypedEventTypeDefinition {
+    std::string event_type_id;
+    std::vector<ComponentFieldSchema> payload_fields;
+
+    bool operator==(const TypedEventTypeDefinition& other) const = default;
+};
+
+/**
+ * @brief Initial event instance for typed layer.
+ */
+struct TypedInitialEvent {
+    std::string event_type_ref;
+    double timestamp = 0.0;
+    int priority = 0;
+    std::string event_handle;
+    std::map<std::string, TypedScalarValue> payload;
+
+    bool operator==(const TypedInitialEvent& other) const = default;
+};
+
+/**
+ * @brief System write action for typed layer.
+ */
+struct TypedSystemWrite {
+    std::string target;
+    std::string expr;
+    std::optional<std::string> when;
+
+    bool operator==(const TypedSystemWrite& other) const = default;
+};
+
+/**
+ * @brief System relation creation action for typed layer.
+ */
+struct TypedSystemCreateRelation {
+    std::string relation_type_ref;
+    std::string source;
+    std::string target;
+    std::optional<std::string> expires_after;
+    std::map<std::string, std::string> payload_exprs;
+    std::optional<std::string> when;
+
+    bool operator==(const TypedSystemCreateRelation& other) const = default;
+};
+
+/**
+ * @brief System event emission action for typed layer.
+ */
+struct TypedSystemEmitEvent {
+    std::string event_type_ref;
+    std::optional<std::string> timestamp;
+    int priority = 0;
+    std::map<std::string, std::string> payload_exprs;
+    std::optional<std::string> when;
+
+    bool operator==(const TypedSystemEmitEvent& other) const = default;
+};
+
+/**
+ * @brief System definition for typed layer.
+ */
+struct TypedSystemDefinition {
+    std::string system_id;
+    std::vector<std::string> triggered_by;
+    std::string kind = "per_entity";  // per_entity | pair | per_relation
+    std::optional<std::string> entity_type_ref;
+    std::optional<std::string> relation_type_ref;
+    std::optional<std::string> where;
+    std::vector<TypedSystemWrite> writes;
+    std::vector<TypedSystemCreateRelation> create_relations;
+    std::vector<TypedSystemEmitEvent> emit_events;
+
+    bool operator==(const TypedSystemDefinition& other) const = default;
+};
+
+/**
+ * @brief Optional v3 typed simulation layer.
+ */
+struct TypedLayerDefinition {
+    TypedWorldDescriptor world;
+    std::vector<ComponentTypeDefinition> component_types;
+    std::vector<TypedEntityTypeDefinition> entity_types;
+    std::vector<TypedEntityInstanceDefinition> entities;
+    std::vector<RelationTypeDefinition> relation_types;
+    std::vector<RelationInstanceDefinition> relations;
+    std::vector<TypedEventTypeDefinition> event_types;
+    std::vector<TypedInitialEvent> initial_events;
+    std::vector<TypedSystemDefinition> systems;
+
+    bool operator==(const TypedLayerDefinition& other) const = default;
+};
+
+/**
  * @brief Complete scenario definition - the root schema object
  */
 struct ScenarioDefinition {
@@ -284,6 +472,7 @@ struct ScenarioDefinition {
     // Optional fields for v1
     std::vector<EventDescriptor> events;
     std::optional<AgentLayerDefinition> agent_layer;
+    std::optional<TypedLayerDefinition> typed_layer;
     std::optional<ScenarioMetadata> metadata;
     
     // Explicitly excluded in v1 (documented for clarity):
