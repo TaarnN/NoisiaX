@@ -3,8 +3,140 @@
 #include <sstream>
 #include <stdexcept>
 #include <fstream>
+#include <cstdint>
+#include <set>
+#include <type_traits>
 
 namespace noisiax::serialization {
+
+namespace {
+
+constexpr char kBase64Table[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+int decode_base64_char(char c) {
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    if (c >= '0' && c <= '9') return c - '0' + 52;
+    if (c == '+') return 62;
+    if (c == '/') return 63;
+    return -1;
+}
+
+std::string base64_encode(const std::string& input) {
+    std::string output;
+    output.reserve(((input.size() + 2) / 3) * 4);
+
+    std::size_t index = 0;
+    while (index + 2 < input.size()) {
+        const uint32_t block =
+            (static_cast<uint32_t>(static_cast<unsigned char>(input[index])) << 16U) |
+            (static_cast<uint32_t>(static_cast<unsigned char>(input[index + 1])) << 8U) |
+            static_cast<uint32_t>(static_cast<unsigned char>(input[index + 2]));
+
+        output.push_back(kBase64Table[(block >> 18U) & 0x3FU]);
+        output.push_back(kBase64Table[(block >> 12U) & 0x3FU]);
+        output.push_back(kBase64Table[(block >> 6U) & 0x3FU]);
+        output.push_back(kBase64Table[block & 0x3FU]);
+        index += 3;
+    }
+
+    const std::size_t remainder = input.size() - index;
+    if (remainder == 1) {
+        const uint32_t block =
+            static_cast<uint32_t>(static_cast<unsigned char>(input[index])) << 16U;
+        output.push_back(kBase64Table[(block >> 18U) & 0x3FU]);
+        output.push_back(kBase64Table[(block >> 12U) & 0x3FU]);
+        output.push_back('=');
+        output.push_back('=');
+    } else if (remainder == 2) {
+        const uint32_t block =
+            (static_cast<uint32_t>(static_cast<unsigned char>(input[index])) << 16U) |
+            (static_cast<uint32_t>(static_cast<unsigned char>(input[index + 1])) << 8U);
+        output.push_back(kBase64Table[(block >> 18U) & 0x3FU]);
+        output.push_back(kBase64Table[(block >> 12U) & 0x3FU]);
+        output.push_back(kBase64Table[(block >> 6U) & 0x3FU]);
+        output.push_back('=');
+    }
+
+    return output;
+}
+
+std::string base64_decode(const std::string& input) {
+    if (input.size() % 4 != 0) {
+        throw std::runtime_error("Invalid base64 checkpoint payload length");
+    }
+
+    std::string output;
+    output.reserve((input.size() / 4) * 3);
+
+    for (std::size_t i = 0; i < input.size(); i += 4) {
+        const char c0 = input[i];
+        const char c1 = input[i + 1];
+        const char c2 = input[i + 2];
+        const char c3 = input[i + 3];
+
+        const int v0 = decode_base64_char(c0);
+        const int v1 = decode_base64_char(c1);
+        if (v0 < 0 || v1 < 0) {
+            throw std::runtime_error("Invalid base64 checkpoint payload");
+        }
+
+        const bool pad2 = (c2 == '=');
+        const bool pad3 = (c3 == '=');
+        if (pad2 && !pad3) {
+            throw std::runtime_error("Invalid base64 checkpoint padding");
+        }
+
+        int v2 = 0;
+        int v3 = 0;
+        if (!pad2) {
+            v2 = decode_base64_char(c2);
+            if (v2 < 0) {
+                throw std::runtime_error("Invalid base64 checkpoint payload");
+            }
+        }
+        if (!pad3) {
+            v3 = decode_base64_char(c3);
+            if (v3 < 0) {
+                throw std::runtime_error("Invalid base64 checkpoint payload");
+            }
+        }
+
+        const uint32_t block =
+            (static_cast<uint32_t>(v0) << 18U) |
+            (static_cast<uint32_t>(v1) << 12U) |
+            (static_cast<uint32_t>(v2) << 6U) |
+            static_cast<uint32_t>(v3);
+
+        output.push_back(static_cast<char>((block >> 16U) & 0xFFU));
+        if (!pad2) {
+            output.push_back(static_cast<char>((block >> 8U) & 0xFFU));
+        }
+        if (!pad3) {
+            output.push_back(static_cast<char>(block & 0xFFU));
+        }
+    }
+
+    return output;
+}
+
+void validate_allowed_keys(const YAML::Node& node,
+                           const std::set<std::string>& allowed_keys,
+                           const std::string& context) {
+    if (!node || !node.IsMap()) {
+        return;
+    }
+
+    for (const auto& entry : node) {
+        const std::string key = entry.first.as<std::string>();
+        if (allowed_keys.find(key) == allowed_keys.end()) {
+            throw std::runtime_error("Unknown field '" + key + "' in " + context);
+        }
+    }
+}
+
+}  // namespace
 
 // Helper to convert VariableType enum to string
 static std::string variable_type_to_string(schema::VariableType type) {
@@ -74,7 +206,7 @@ std::string YamlSerializer::format_value(
     }, value);
 }
 
-std::variant<int64_t, double, std::string, bool, std::vector<std::string>> YamlSerializer::parse_scalar_value(
+std::variant<int64_t, double, std::string, bool> YamlSerializer::parse_scalar_value(
     const std::string& str, schema::VariableType type) const {
     switch (type) {
         case schema::VariableType::INTEGER: {
@@ -337,6 +469,24 @@ std::string YamlSerializer::serialize(const schema::ScenarioDefinition& scenario
 
 schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_content) const {
     YAML::Node root = YAML::Load(yaml_content);
+
+    validate_allowed_keys(
+        root,
+        {
+            "scenario_id",
+            "schema_version",
+            "master_seed",
+            "goal_statement",
+            "assumptions",
+            "entities",
+            "variables",
+            "dependency_edges",
+            "constraints",
+            "events",
+            "evaluation_criteria",
+            "metadata"
+        },
+        "scenario root");
     
     schema::ScenarioDefinition scenario;
     
@@ -365,6 +515,18 @@ schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_c
     // Assumptions
     if (root["assumptions"]) {
         for (const auto& node : root["assumptions"]) {
+            validate_allowed_keys(
+                node,
+                {
+                    "assumption_id",
+                    "category",
+                    "description",
+                    "rationale",
+                    "source",
+                    "confidence_level"
+                },
+                "assumption");
+
             schema::Assumption assumption;
             assumption.assumption_id = node["assumption_id"].as<std::string>();
             assumption.category = node["category"].as<std::string>();
@@ -385,6 +547,16 @@ schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_c
     // Entities
     if (root["entities"]) {
         for (const auto& node : root["entities"]) {
+            validate_allowed_keys(
+                node,
+                {
+                    "entity_id",
+                    "entity_type",
+                    "description",
+                    "attributes"
+                },
+                "entity");
+
             schema::EntityDescriptor entity;
             entity.entity_id = node["entity_id"].as<std::string>();
             entity.entity_type = node["entity_type"].as<std::string>();
@@ -403,6 +575,20 @@ schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_c
     // Variables
     if (root["variables"]) {
         for (const auto& node : root["variables"]) {
+            validate_allowed_keys(
+                node,
+                {
+                    "variable_id",
+                    "entity_ref",
+                    "type",
+                    "default_value",
+                    "min_value",
+                    "max_value",
+                    "enum_values",
+                    "description"
+                },
+                "variable");
+
             schema::VariableDescriptor var;
             var.variable_id = node["variable_id"].as<std::string>();
             
@@ -416,8 +602,10 @@ schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_c
             const auto& default_node = node["default_value"];
             if (default_node.IsScalar()) {
                 std::string scalar_val = default_node.as<std::string>();
-                auto parsed = parse_scalar_value(scalar_val, var.type);
-                std::visit([var.default_value = parse_scalar_value(scalar_val, var.type);var](auto&& val) { var.default_value = std::forward<decltype(val)>(val); }, parsed);
+                const auto parsed_scalar = parse_scalar_value(scalar_val, var.type);
+                std::visit([&](const auto& value) {
+                    var.default_value = value;
+                }, parsed_scalar);
             } else if (default_node.IsSequence()) {
                 std::vector<std::string> values;
                 for (const auto& item : default_node) {
@@ -450,6 +638,18 @@ schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_c
     // Dependency edges
     if (root["dependency_edges"]) {
         for (const auto& node : root["dependency_edges"]) {
+            validate_allowed_keys(
+                node,
+                {
+                    "edge_id",
+                    "source_variable",
+                    "target_variable",
+                    "propagation_function_id",
+                    "weight",
+                    "metadata"
+                },
+                "dependency edge");
+
             schema::DependencyEdge edge;
             edge.edge_id = node["edge_id"].as<std::string>();
             edge.source_variable = node["source_variable"].as<std::string>();
@@ -470,6 +670,18 @@ schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_c
     // Constraints
     if (root["constraints"]) {
         for (const auto& node : root["constraints"]) {
+            validate_allowed_keys(
+                node,
+                {
+                    "constraint_id",
+                    "affected_variables",
+                    "constraint_expression",
+                    "enforcement_level",
+                    "error_message",
+                    "correction_hint"
+                },
+                "constraint");
+
             schema::ConstraintRule constraint;
             constraint.constraint_id = node["constraint_id"].as<std::string>();
             
@@ -495,12 +707,29 @@ schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_c
     // Events
     if (root["events"]) {
         for (const auto& node : root["events"]) {
+            validate_allowed_keys(
+                node,
+                {
+                    "event_id",
+                    "event_type",
+                    "timestamp",
+                    "priority",
+                    "trigger_condition",
+                    "event_payload",
+                    "description"
+                },
+                "event");
+
             schema::EventDescriptor event;
             event.event_id = node["event_id"].as<std::string>();
             event.event_type = node["event_type"].as<std::string>();
             event.timestamp = node["timestamp"].as<double>();
             event.priority = node["priority"].as<int>();
-            event.trigger_condition = node["trigger_condition"].as<std::string>();
+            if (node["trigger_condition"]) {
+                event.trigger_condition = node["trigger_condition"].as<std::string>();
+            } else {
+                event.trigger_condition.clear();
+            }
             
             if (node["event_payload"]) {
                 for (const auto& payload : node["event_payload"]) {
@@ -517,6 +746,20 @@ schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_c
     // Evaluation criteria
     if (root["evaluation_criteria"]) {
         for (const auto& node : root["evaluation_criteria"]) {
+            validate_allowed_keys(
+                node,
+                {
+                    "criterion_id",
+                    "metric_name",
+                    "aggregation_method",
+                    "input_variables",
+                    "target_value",
+                    "threshold_min",
+                    "threshold_max",
+                    "description"
+                },
+                "evaluation criterion");
+
             schema::EvaluationCriterion criterion;
             criterion.criterion_id = node["criterion_id"].as<std::string>();
             criterion.metric_name = node["metric_name"].as<std::string>();
@@ -546,6 +789,17 @@ schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_c
     
     // Metadata (optional)
     if (root["metadata"]) {
+        validate_allowed_keys(
+            root["metadata"],
+            {
+                "author",
+                "created_date",
+                "modified_date",
+                "version",
+                "custom_fields"
+            },
+            "metadata");
+
         schema::ScenarioMetadata metadata;
         metadata.author = root["metadata"]["author"].as<std::string>();
         metadata.created_date = root["metadata"]["created_date"].as<std::string>();
@@ -598,7 +852,7 @@ std::string CheckpointSerializer::serialize_checkpoint(
     out << YAML::BeginMap;
     out << YAML::Key << "scenario_id" << YAML::Value << scenario_id;
     out << YAML::Key << "timestamp" << YAML::Value << timestamp;
-    out << YAML::Key << "state_data" << YAML::Value << state_data;
+    out << YAML::Key << "state_data_b64" << YAML::Value << base64_encode(state_data);
     out << YAML::EndMap;
     
     return out.c_str();
@@ -611,7 +865,15 @@ std::tuple<std::string, double, std::string> CheckpointSerializer::deserialize_c
     
     std::string scenario_id = root["scenario_id"].as<std::string>();
     double timestamp = root["timestamp"].as<double>();
-    std::string state_data = root["state_data"].as<std::string>();
+    std::string state_data;
+    if (root["state_data_b64"]) {
+        state_data = base64_decode(root["state_data_b64"].as<std::string>());
+    } else if (root["state_data"]) {
+        // Backward compatibility for legacy checkpoints written before base64 encoding.
+        state_data = root["state_data"].as<std::string>();
+    } else {
+        throw std::runtime_error("Missing checkpoint state payload");
+    }
     
     return std::make_tuple(scenario_id, timestamp, state_data);
 }

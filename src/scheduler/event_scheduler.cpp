@@ -56,10 +56,6 @@ std::size_t EventScheduler::process_events_until(double max_time, engine::Simula
         
         if (process_next_event(state)) {
             processed++;
-        } else {
-            // Skip this event if no callback registered
-            pop_next_event();
-            total_skipped_++;
         }
     }
     
@@ -85,7 +81,8 @@ bool EventScheduler::process_next_event(engine::SimulationState& state) {
         return true;
     }
     
-    return false;
+    total_skipped_++;
+    return true;
 }
 
 void EventScheduler::clear() {

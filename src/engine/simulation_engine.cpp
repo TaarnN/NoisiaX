@@ -1,7 +1,9 @@
 #include "noisiax/engine/simulation_engine.hpp"
+#include <algorithm>
 #include <sstream>
 #include <stdexcept>
 #include <cstring>
+#include <cmath>
 
 namespace noisiax::engine {
 
@@ -19,31 +21,41 @@ void SimulationState::initialize(const compiler::CompiledScenario& compiled, uin
     
     current_time_ = 0.0;
     
-    // Initialize buffers based on parameter handles
+    std::size_t int_size = 0;
+    std::size_t float_size = 0;
+    std::size_t string_size = 0;
+    std::size_t bool_size = 0;
+
+    // Initialize variable mappings and derive buffer sizes from compiled offsets.
     for (const auto& [var_id, handle] : compiled.parameter_handles) {
         stale_flags_[var_id] = false;
         
         switch (handle.type) {
             case schema::VariableType::INTEGER:
-                variable_to_int_index_[var_id] = int_buffer_.size();
-                int_buffer_.push_back(0);
+                variable_to_int_index_[var_id] = handle.buffer_offset;
+                int_size = std::max(int_size, handle.buffer_offset + 1);
                 break;
             case schema::VariableType::FLOAT:
-                variable_to_float_index_[var_id] = float_buffer_.size();
-                float_buffer_.push_back(0.0);
+                variable_to_float_index_[var_id] = handle.buffer_offset;
+                float_size = std::max(float_size, handle.buffer_offset + 1);
                 break;
             case schema::VariableType::STRING:
-                variable_to_string_index_[var_id] = string_buffer_.size();
-                string_buffer_.emplace_back("");
+                variable_to_string_index_[var_id] = handle.buffer_offset;
+                string_size = std::max(string_size, handle.buffer_offset + 1);
                 break;
             case schema::VariableType::BOOLEAN:
-                variable_to_bool_index_[var_id] = bool_buffer_.size();
-                bool_buffer_.push_back(false);
+                variable_to_bool_index_[var_id] = handle.buffer_offset;
+                bool_size = std::max(bool_size, handle.buffer_offset + 1);
                 break;
             default:
                 break;
         }
     }
+
+    int_buffer_.assign(int_size, 0);
+    float_buffer_.assign(float_size, 0.0);
+    string_buffer_.assign(string_size, "");
+    bool_buffer_.assign(bool_size, false);
     
     (void)seed;  // Seed can be used for deterministic initialization of default values
 }
@@ -82,6 +94,10 @@ const std::vector<bool>& SimulationState::bool_buffer() const {
 
 void SimulationState::mark_stale(const std::string& variable_id) {
     stale_flags_[variable_id] = true;
+}
+
+void SimulationState::clear_stale(const std::string& variable_id) {
+    stale_flags_[variable_id] = false;
 }
 
 bool SimulationState::is_stale(const std::string& variable_id) const {
@@ -218,12 +234,13 @@ void SimulationState::restore_checkpoint(const std::string& checkpoint_data) {
 
 void DependencyGraph::build_from_compiled(const compiler::CompiledScenario& compiled) {
     adjacency_list_ = compiled.adjacency_lists;
+    parameter_handles_ = compiled.parameter_handles;
     
     // Build reverse adjacency
     reverse_adjacency_.clear();
     for (const auto& [source, targets] : adjacency_list_) {
         for (const auto& entry : targets) {
-            reverse_adjacency_[entry.target_variable].push_back(source);
+            reverse_adjacency_[entry.target_variable].push_back({source, entry});
         }
     }
     
@@ -267,20 +284,54 @@ bool DependencyGraph::pull_recompute(const std::string& target_id, SimulationSta
     if (!state.is_stale(target_id)) {
         return false;  // Not stale, no recomputation needed
     }
-    
-    // Recompute upstream dependencies first
-    auto it = reverse_adjacency_.find(target_id);
-    if (it != reverse_adjacency_.end()) {
-        for (const auto& source_id : it->second) {
-            pull_recompute(source_id, state);
+
+    std::set<std::string> active_stack;
+    std::function<bool(const std::string&)> recompute = [&](const std::string& variable_id) -> bool {
+        if (!state.is_stale(variable_id)) {
+            return false;
         }
-    }
-    
-    // Apply propagation functions from sources to target
-    // This is a simplified implementation - full version would evaluate expressions
-    state.mark_stale(target_id);  // Keep stale until actual computation
-    
-    return true;
+
+        if (active_stack.contains(variable_id)) {
+            throw std::runtime_error("Cycle detected during pull recompute at variable: " + variable_id);
+        }
+        active_stack.insert(variable_id);
+
+        // Recompute upstream dependencies first.
+        auto upstream_it = reverse_adjacency_.find(variable_id);
+        if (upstream_it != reverse_adjacency_.end()) {
+            for (const auto& reverse_entry : upstream_it->second) {
+                recompute(reverse_entry.source_variable);
+            }
+        }
+
+        double target_value = get_numeric_value(variable_id, state);
+        bool updated = false;
+
+        // Apply propagation functions from each upstream source into this target.
+        if (upstream_it != reverse_adjacency_.end()) {
+            for (const auto& reverse_entry : upstream_it->second) {
+                const auto& edge = reverse_entry.edge;
+                auto function_it = functions_.find(edge.propagation_function_id);
+                if (function_it == functions_.end()) {
+                    throw std::runtime_error("Missing propagation function: " + edge.propagation_function_id);
+                }
+
+                const double source_value = get_numeric_value(reverse_entry.source_variable, state);
+                function_it->second(target_value, source_value, edge.weight);
+                updated = true;
+            }
+        }
+
+        if (updated) {
+            set_numeric_value(variable_id, target_value, state);
+        }
+
+        state.clear_stale(variable_id);
+        active_stack.erase(variable_id);
+        return true;
+    };
+
+    return recompute(target_id);
 }
 
 std::vector<std::string> DependencyGraph::get_downstream(const std::string& variable_id) const {
@@ -332,11 +383,74 @@ void DependencyGraph::traverse_upstream(const std::string& start,
     
     auto it = reverse_adjacency_.find(start);
     if (it != reverse_adjacency_.end()) {
-        for (const auto& source : it->second) {
-            result.push_back(source);
-            traverse_upstream(source, result, visited);
+        for (const auto& reverse_entry : it->second) {
+            result.push_back(reverse_entry.source_variable);
+            traverse_upstream(reverse_entry.source_variable, result, visited);
         }
     }
+}
+
+double DependencyGraph::get_numeric_value(const std::string& variable_id, const SimulationState& state) const {
+    auto handle_it = parameter_handles_.find(variable_id);
+    if (handle_it == parameter_handles_.end()) {
+        return 0.0;
+    }
+
+    const auto& handle = handle_it->second;
+    switch (handle.type) {
+        case schema::VariableType::INTEGER:
+            if (handle.buffer_offset < state.int_buffer().size()) {
+                return static_cast<double>(state.int_buffer()[handle.buffer_offset]);
+            }
+            break;
+        case schema::VariableType::FLOAT:
+            if (handle.buffer_offset < state.float_buffer().size()) {
+                return state.float_buffer()[handle.buffer_offset];
+            }
+            break;
+        case schema::VariableType::BOOLEAN:
+            if (handle.buffer_offset < state.bool_buffer().size()) {
+                return state.bool_buffer()[handle.buffer_offset] ? 1.0 : 0.0;
+            }
+            break;
+        default:
+            break;
+    }
+
+    return 0.0;
+}
+
+bool DependencyGraph::set_numeric_value(const std::string& variable_id, double value, SimulationState& state) const {
+    auto handle_it = parameter_handles_.find(variable_id);
+    if (handle_it == parameter_handles_.end()) {
+        return false;
+    }
+
+    const auto& handle = handle_it->second;
+    switch (handle.type) {
+        case schema::VariableType::INTEGER:
+            if (handle.buffer_offset < state.int_buffer().size()) {
+                state.int_buffer()[handle.buffer_offset] = static_cast<int64_t>(std::llround(value));
+                return true;
+            }
+            break;
+        case schema::VariableType::FLOAT:
+            if (handle.buffer_offset < state.float_buffer().size()) {
+                state.float_buffer()[handle.buffer_offset] = value;
+                return true;
+            }
+            break;
+        case schema::VariableType::BOOLEAN:
+            if (handle.buffer_offset < state.bool_buffer().size()) {
+                state.bool_buffer()[handle.buffer_offset] = (value != 0.0);
+                return true;
+            }
+            break;
+        default:
+            break;
+    }
+
+    return false;
 }
 
 } // namespace noisiax::engine

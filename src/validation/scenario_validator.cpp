@@ -1,7 +1,269 @@
 #include "noisiax/validation/scenario_validator.hpp"
 #include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <functional>
 #include <queue>
 #include <set>
+#include <string_view>
+#include <stdexcept>
+
+namespace {
+
+using noisiax::schema::VariableType;
+using NumericResolver = std::function<std::optional<double>(std::string_view)>;
+
+class NumericConstraintParser {
+public:
+    NumericConstraintParser(std::string_view expression, NumericResolver resolver)
+        : expression_(expression), resolver_(std::move(resolver)) {}
+
+    bool evaluate() {
+        const bool result = parse_logical_or();
+        skip_spaces();
+        if (position_ != expression_.size()) {
+            throw std::runtime_error("Unexpected trailing token in constraint expression");
+        }
+        return result;
+    }
+
+private:
+    std::string_view expression_;
+    std::size_t position_ = 0;
+    NumericResolver resolver_;
+
+    void skip_spaces() {
+        while (position_ < expression_.size() &&
+               std::isspace(static_cast<unsigned char>(expression_[position_])) != 0) {
+            ++position_;
+        }
+    }
+
+    bool consume(std::string_view token) {
+        skip_spaces();
+        if (expression_.substr(position_).starts_with(token)) {
+            position_ += token.size();
+            return true;
+        }
+        return false;
+    }
+
+    bool parse_logical_or() {
+        bool value = parse_logical_and();
+        while (consume("||")) {
+            value = value || parse_logical_and();
+        }
+        return value;
+    }
+
+    bool parse_logical_and() {
+        bool value = parse_comparison();
+        while (consume("&&")) {
+            value = value && parse_comparison();
+        }
+        return value;
+    }
+
+    bool parse_comparison() {
+        const double lhs = parse_additive();
+
+        if (consume(">=")) return lhs >= parse_additive();
+        if (consume("<=")) return lhs <= parse_additive();
+        if (consume("==")) return lhs == parse_additive();
+        if (consume("!=")) return lhs != parse_additive();
+        if (consume(">")) return lhs > parse_additive();
+        if (consume("<")) return lhs < parse_additive();
+        return lhs != 0.0;
+    }
+
+    double parse_additive() {
+        double value = parse_multiplicative();
+        while (true) {
+            if (consume("+")) {
+                value += parse_multiplicative();
+                continue;
+            }
+            if (consume("-")) {
+                value -= parse_multiplicative();
+                continue;
+            }
+            break;
+        }
+        return value;
+    }
+
+    double parse_multiplicative() {
+        double value = parse_unary();
+        while (true) {
+            if (consume("*")) {
+                value *= parse_unary();
+                continue;
+            }
+            if (consume("/")) {
+                const double divisor = parse_unary();
+                if (divisor == 0.0) {
+                    throw std::runtime_error("Division by zero in constraint expression");
+                }
+                value /= divisor;
+                continue;
+            }
+            break;
+        }
+        return value;
+    }
+
+    double parse_unary() {
+        if (consume("+")) return parse_unary();
+        if (consume("-")) return -parse_unary();
+        return parse_primary();
+    }
+
+    double parse_primary() {
+        skip_spaces();
+        if (position_ >= expression_.size()) {
+            throw std::runtime_error("Unexpected end of constraint expression");
+        }
+
+        if (consume("(")) {
+            const double nested = parse_additive();
+            if (!consume(")")) {
+                throw std::runtime_error("Missing closing ')' in constraint expression");
+            }
+            return nested;
+        }
+
+        const char current = expression_[position_];
+        if (std::isdigit(static_cast<unsigned char>(current)) != 0 || current == '.') {
+            return parse_number();
+        }
+        if (std::isalpha(static_cast<unsigned char>(current)) != 0 || current == '_') {
+            return parse_identifier();
+        }
+
+        throw std::runtime_error("Invalid token in constraint expression");
+    }
+
+    double parse_number() {
+        skip_spaces();
+        const std::size_t start = position_;
+        bool saw_digit = false;
+
+        while (position_ < expression_.size() &&
+               std::isdigit(static_cast<unsigned char>(expression_[position_])) != 0) {
+            saw_digit = true;
+            ++position_;
+        }
+
+        if (position_ < expression_.size() && expression_[position_] == '.') {
+            ++position_;
+            while (position_ < expression_.size() &&
+                   std::isdigit(static_cast<unsigned char>(expression_[position_])) != 0) {
+                saw_digit = true;
+                ++position_;
+            }
+        }
+
+        if (position_ < expression_.size() &&
+            (expression_[position_] == 'e' || expression_[position_] == 'E')) {
+            const std::size_t exponent_start = position_;
+            ++position_;
+            if (position_ < expression_.size() &&
+                (expression_[position_] == '+' || expression_[position_] == '-')) {
+                ++position_;
+            }
+
+            bool exponent_digit = false;
+            while (position_ < expression_.size() &&
+                   std::isdigit(static_cast<unsigned char>(expression_[position_])) != 0) {
+                exponent_digit = true;
+                ++position_;
+            }
+
+            if (!exponent_digit) {
+                position_ = exponent_start;
+            }
+        }
+
+        if (!saw_digit) {
+            throw std::runtime_error("Invalid numeric literal in constraint expression");
+        }
+
+        const std::string token(expression_.substr(start, position_ - start));
+        try {
+            return std::stod(token);
+        } catch (...) {
+            throw std::runtime_error("Invalid numeric literal in constraint expression");
+        }
+    }
+
+    double parse_identifier() {
+        skip_spaces();
+        const std::size_t start = position_;
+        ++position_;
+        while (position_ < expression_.size()) {
+            const char c = expression_[position_];
+            if (std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '_') {
+                ++position_;
+                continue;
+            }
+            break;
+        }
+
+        const std::string_view variable = expression_.substr(start, position_ - start);
+        auto value = resolver_(variable);
+        if (!value.has_value()) {
+            throw std::runtime_error("Unknown/non-numeric variable in constraint expression: " +
+                                     std::string(variable));
+        }
+        return *value;
+    }
+};
+
+std::optional<double> scalar_default_to_numeric(const std::variant<int64_t, double, std::string, bool, std::vector<std::string>>& value,
+                                                VariableType type) {
+    switch (type) {
+        case VariableType::INTEGER:
+            if (const auto* v = std::get_if<int64_t>(&value)) {
+                return static_cast<double>(*v);
+            }
+            break;
+        case VariableType::FLOAT:
+            if (const auto* v = std::get_if<double>(&value)) {
+                return *v;
+            }
+            break;
+        case VariableType::BOOLEAN:
+            if (const auto* v = std::get_if<bool>(&value)) {
+                return *v ? 1.0 : 0.0;
+            }
+            break;
+        default:
+            break;
+    }
+    return std::nullopt;
+}
+
+bool looks_like_semver(const std::string& version) {
+    int dot_count = 0;
+    int digits_in_segment = 0;
+    for (const char c : version) {
+        if (c == '.') {
+            if (digits_in_segment == 0) {
+                return false;
+            }
+            ++dot_count;
+            digits_in_segment = 0;
+            continue;
+        }
+        if (std::isdigit(static_cast<unsigned char>(c)) == 0) {
+            return false;
+        }
+        ++digits_in_segment;
+    }
+    return dot_count == 2 && digits_in_segment > 0;
+}
+
+}  // namespace
 
 namespace noisiax::validation {
 
@@ -118,8 +380,8 @@ ValidationResult ScenarioValidator::validate_assumptions(const schema::ScenarioD
     result.level = schema::ValidationLevel::REJECT;
     
     if (scenario.assumptions.empty()) {
-        result.level = schema::ValidationLevel::WARN;
-        result.message = "No assumptions defined - consider documenting key assumptions";
+        result.passed = false;
+        result.message = "No assumptions defined - assumptions are required in v1";
         return result;
     }
     
@@ -151,8 +413,8 @@ ValidationResult ScenarioValidator::validate_entities(const schema::ScenarioDefi
     result.level = schema::ValidationLevel::REJECT;
     
     if (scenario.entities.empty()) {
-        result.level = schema::ValidationLevel::WARN;
-        result.message = "No entities defined";
+        result.passed = false;
+        result.message = "No entities defined - entities are required in v1";
         return result;
     }
     
@@ -234,8 +496,8 @@ ValidationResult ScenarioValidator::validate_dependencies(const schema::Scenario
     result.level = schema::ValidationLevel::REJECT;
     
     if (scenario.dependency_edges.empty()) {
-        result.level = schema::ValidationLevel::WARN;
-        result.message = "No dependency edges defined";
+        result.passed = false;
+        result.message = "No dependency edges defined - dependencies are required in v1";
         return result;
     }
     
@@ -282,8 +544,8 @@ ValidationResult ScenarioValidator::validate_constraints(const schema::ScenarioD
     result.level = schema::ValidationLevel::REJECT;
     
     if (scenario.constraints.empty()) {
-        result.level = schema::ValidationLevel::WARN;
-        result.message = "No constraints defined";
+        result.passed = false;
+        result.message = "No constraints defined - constraints are required in v1";
         return result;
     }
     
@@ -361,6 +623,14 @@ ValidationResult ScenarioValidator::validate_events(const schema::ScenarioDefini
             result.message = "Scheduled event " + event.event_id + " has negative timestamp";
             return result;
         }
+
+        if ((event.event_type == "TRIGGERED" || event.event_type == "CONDITIONAL") &&
+            event.trigger_condition.empty()) {
+            result.passed = false;
+            result.message = "Event " + event.event_id +
+                             " must define trigger_condition for type " + event.event_type;
+            return result;
+        }
     }
     
     result.message = "All events validated";
@@ -374,8 +644,8 @@ ValidationResult ScenarioValidator::validate_evaluation_criteria(const schema::S
     result.level = schema::ValidationLevel::REJECT;
     
     if (scenario.evaluation_criteria.empty()) {
-        result.level = schema::ValidationLevel::WARN;
-        result.message = "No evaluation criteria defined";
+        result.passed = false;
+        result.message = "No evaluation criteria defined - evaluation criteria are required in v1";
         return result;
     }
     
@@ -428,12 +698,40 @@ ValidationResult ScenarioValidator::check_required_fields(const schema::Scenario
         return result;
     }
     
-    // Check schema version format (simple check)
-    if (scenario.schema_version.find('.') == std::string::npos) {
-        result.level = schema::ValidationLevel::WARN;
-        result.passed = true;
-        result.message = "Schema version should follow semver format (e.g., 1.0.0)";
-        result.suggestion = "Consider using format like '1.0.0'";
+    if (!looks_like_semver(scenario.schema_version)) {
+        result.passed = false;
+        result.message = "schema_version must follow semver format (e.g., 1.0.0)";
+        return result;
+    }
+
+    if (scenario.assumptions.empty()) {
+        result.passed = false;
+        result.message = "Missing required stage data: assumptions";
+        return result;
+    }
+    if (scenario.entities.empty()) {
+        result.passed = false;
+        result.message = "Missing required stage data: entities";
+        return result;
+    }
+    if (scenario.variables.empty()) {
+        result.passed = false;
+        result.message = "Missing required stage data: variables";
+        return result;
+    }
+    if (scenario.dependency_edges.empty()) {
+        result.passed = false;
+        result.message = "Missing required stage data: dependency_edges";
+        return result;
+    }
+    if (scenario.constraints.empty()) {
+        result.passed = false;
+        result.message = "Missing required stage data: constraints";
+        return result;
+    }
+    if (scenario.evaluation_criteria.empty()) {
+        result.passed = false;
+        result.message = "Missing required stage data: evaluation_criteria";
         return result;
     }
     
@@ -511,13 +809,16 @@ ValidationResult ScenarioValidator::check_type_compatibility(const schema::Scena
         auto tgt_it = var_types.find(edge.target_variable);
         
         if (src_it != var_types.end() && tgt_it != var_types.end()) {
-            // Basic type compatibility check
-            // For v1, we allow most combinations but warn about obvious mismatches
-            if (src_it->second == schema::VariableType::STRING && 
-                tgt_it->second == schema::VariableType::INTEGER) {
+            // Runtime propagation currently supports numeric/boolean variables only.
+            if (src_it->second == schema::VariableType::STRING ||
+                src_it->second == schema::VariableType::ENUM ||
+                src_it->second == schema::VariableType::LIST ||
+                tgt_it->second == schema::VariableType::STRING ||
+                tgt_it->second == schema::VariableType::ENUM ||
+                tgt_it->second == schema::VariableType::LIST) {
                 result.passed = false;
-                result.message = "Type incompatibility: edge " + edge.edge_id + 
-                                " connects STRING source to INTEGER target";
+                result.message = "Type incompatibility: edge " + edge.edge_id +
+                                " uses unsupported non-numeric variable type in v1 propagation";
                 return result;
             }
         }
@@ -533,21 +834,41 @@ ValidationResult ScenarioValidator::check_initial_constraints(const schema::Scen
     result.passed = true;
     result.level = schema::ValidationLevel::REJECT;
     
-    // For v1, we do a basic sanity check on constraint expressions
-    // Full satisfiability checking is deferred
-    for (const auto& constraint : scenario.constraints) {
-        // Check that expression contains referenced variables
-        for (const auto& var : constraint.affected_variables) {
-            if (constraint.constraint_expression.find(var) == std::string::npos) {
-                result.passed = false;
-                result.message = "Constraint " + constraint.constraint_id + 
-                                " expression does not reference variable: " + var;
-                return result;
-            }
+    std::map<std::string, double> initial_numeric_values;
+    for (const auto& variable : scenario.variables) {
+        auto numeric = scalar_default_to_numeric(variable.default_value, variable.type);
+        if (numeric.has_value()) {
+            initial_numeric_values[variable.variable_id] = *numeric;
         }
     }
-    
-    result.message = "Initial constraints appear satisfiable";
+
+    for (const auto& constraint : scenario.constraints) {
+        try {
+            NumericConstraintParser parser(
+                constraint.constraint_expression,
+                [&](std::string_view variable) -> std::optional<double> {
+                    auto it = initial_numeric_values.find(std::string(variable));
+                    if (it == initial_numeric_values.end()) {
+                        return std::nullopt;
+                    }
+                    return it->second;
+                });
+
+            const bool passed = parser.evaluate();
+            if (!passed) {
+                result.passed = false;
+                result.message = "Initial-state constraint unsatisfied: " + constraint.constraint_id;
+                return result;
+            }
+        } catch (const std::exception& ex) {
+            result.passed = false;
+            result.message = "Failed to evaluate initial constraint " + constraint.constraint_id +
+                            ": " + ex.what();
+            return result;
+        }
+    }
+
+    result.message = "Initial constraints are satisfiable";
     return result;
 }
 
