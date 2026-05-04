@@ -1,4 +1,5 @@
 #include "noisiax/noisiax.hpp"
+#include "noisiax/engine/agent_runtime.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -722,6 +723,14 @@ compiler::CompiledScenario compile_scenario(const schema::ScenarioDefinition& sc
 }
 
 schema::ScenarioReport run_scenario(const compiler::CompiledScenario& compiled) {
+    if (compiled.agent_layer.has_value()) {
+        RunOptions options;
+        options.trace_level = TraceLevel::NONE;
+        options.include_final_state = false;
+        options.include_causal_graph = false;
+        return engine::run_agent_layer_scenario(compiled, options).report;
+    }
+
     schema::ScenarioReport report;
     report.scenario_id = compiled.scenario_id;
     report.report_type = "RUNTIME";
@@ -787,6 +796,31 @@ schema::ScenarioReport run_scenario(const compiler::CompiledScenario& compiled) 
 schema::ScenarioReport run_scenario(const std::string& filepath) {
     const auto compiled = compile_scenario(filepath);
     return run_scenario(compiled);
+}
+
+RunResult run_scenario_detailed(const compiler::CompiledScenario& compiled, const RunOptions& options) {
+    if (compiled.agent_layer.has_value()) {
+        return engine::run_agent_layer_scenario(compiled, options);
+    }
+
+    RunResult detailed;
+    detailed.report = run_scenario(compiled);
+    detailed.report.report_type = "RUNTIME";
+    detailed.report.statistics["trace_level"] = [&]() {
+        switch (options.trace_level) {
+            case TraceLevel::NONE: return std::string("none");
+            case TraceLevel::EVENTS: return std::string("events");
+            case TraceLevel::DECISIONS: return std::string("decisions");
+            case TraceLevel::FULL: return std::string("full");
+        }
+        return std::string("none");
+    }();
+    return detailed;
+}
+
+RunResult run_scenario_detailed(const std::string& filepath, const RunOptions& options) {
+    const auto compiled = compile_scenario(filepath);
+    return run_scenario_detailed(compiled, options);
 }
 
 bool save_checkpoint(const engine::SimulationState& state,

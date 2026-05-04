@@ -414,6 +414,107 @@ std::string YamlSerializer::serialize(const schema::ScenarioDefinition& scenario
         out << YAML::EndMap;
     }
     out << YAML::EndSeq;
+
+    if (scenario.agent_layer.has_value()) {
+        const auto& layer = *scenario.agent_layer;
+        out << YAML::Key << "agent_layer" << YAML::Value << YAML::BeginMap;
+
+        out << YAML::Key << "world" << YAML::Value << YAML::BeginMap;
+        out << YAML::Key << "duration" << YAML::Value << layer.world.duration;
+        out << YAML::Key << "time_unit" << YAML::Value << layer.world.time_unit;
+        out << YAML::Key << "map_width" << YAML::Value << layer.world.map_width;
+        out << YAML::Key << "map_height" << YAML::Value << layer.world.map_height;
+        out << YAML::Key << "default_walking_speed" << YAML::Value << layer.world.default_walking_speed;
+        out << YAML::Key << "max_event_count" << YAML::Value << static_cast<uint64_t>(layer.world.max_event_count);
+        out << YAML::EndMap;
+
+        out << YAML::Key << "locations" << YAML::Value << YAML::BeginSeq;
+        for (const auto& location : layer.locations) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "location_id" << YAML::Value << location.location_id;
+            out << YAML::Key << "location_type" << YAML::Value << location.location_type;
+            out << YAML::Key << "x" << YAML::Value << location.x;
+            out << YAML::Key << "y" << YAML::Value << location.y;
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;
+
+        out << YAML::Key << "items" << YAML::Value << YAML::BeginSeq;
+        for (const auto& item : layer.items) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "item_id" << YAML::Value << item.item_id;
+            out << YAML::Key << "category" << YAML::Value << item.category;
+            out << YAML::Key << "base_appeal" << YAML::Value << item.base_appeal;
+            out << YAML::Key << "tags" << YAML::Value << YAML::BeginSeq;
+            for (const auto& tag : item.tags) {
+                out << tag;
+            }
+            out << YAML::EndSeq;
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;
+
+        out << YAML::Key << "shops" << YAML::Value << YAML::BeginSeq;
+        for (const auto& shop : layer.shops) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "shop_id" << YAML::Value << shop.shop_id;
+            out << YAML::Key << "location_ref" << YAML::Value << shop.location_ref;
+            out << YAML::Key << "service_time" << YAML::Value << shop.service_time;
+            out << YAML::Key << "queue_capacity" << YAML::Value << shop.queue_capacity;
+            out << YAML::Key << "inventory" << YAML::Value << YAML::BeginSeq;
+            for (const auto& inventory : shop.inventory) {
+                out << YAML::BeginMap;
+                out << YAML::Key << "item_id" << YAML::Value << inventory.item_id;
+                out << YAML::Key << "price" << YAML::Value << inventory.price;
+                out << YAML::Key << "stock" << YAML::Value << inventory.stock;
+                out << YAML::EndMap;
+            }
+            out << YAML::EndSeq;
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;
+
+        out << YAML::Key << "agents" << YAML::Value << YAML::BeginSeq;
+        for (const auto& agent : layer.agents) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "agent_id" << YAML::Value << agent.agent_id;
+            out << YAML::Key << "start_location_ref" << YAML::Value << agent.start_location_ref;
+            out << YAML::Key << "budget" << YAML::Value << agent.budget;
+            out << YAML::Key << "movement_speed" << YAML::Value << agent.movement_speed;
+            out << YAML::Key << "hunger" << YAML::Value << agent.hunger;
+            out << YAML::Key << "social_susceptibility" << YAML::Value << agent.social_susceptibility;
+            out << YAML::Key << "memory_slots" << YAML::Value << static_cast<uint64_t>(agent.memory_slots);
+            if (!agent.policy_ref.empty()) {
+                out << YAML::Key << "policy_ref" << YAML::Value << agent.policy_ref;
+            }
+            out << YAML::Key << "traits" << YAML::Value << YAML::BeginMap;
+            for (const auto& [key, value] : agent.traits) {
+                out << YAML::Key << key << YAML::Value << value;
+            }
+            out << YAML::EndMap;
+            out << YAML::Key << "preferences" << YAML::Value << YAML::BeginMap;
+            for (const auto& [key, value] : agent.preferences) {
+                out << YAML::Key << key << YAML::Value << value;
+            }
+            out << YAML::EndMap;
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;
+
+        out << YAML::Key << "policies" << YAML::Value << YAML::BeginSeq;
+        for (const auto& policy : layer.policies) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "policy_id" << YAML::Value << policy.policy_id;
+            out << YAML::Key << "movement_policy" << YAML::Value << policy.movement_policy;
+            out << YAML::Key << "observation_policy" << YAML::Value << policy.observation_policy;
+            out << YAML::Key << "conversation_policy" << YAML::Value << policy.conversation_policy;
+            out << YAML::Key << "purchase_policy" << YAML::Value << policy.purchase_policy;
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;
+
+        out << YAML::EndMap;
+    }
     
     // Evaluation criteria
     out << YAML::Key << "evaluation_criteria" << YAML::Value << YAML::BeginSeq;
@@ -483,6 +584,7 @@ schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_c
             "dependency_edges",
             "constraints",
             "events",
+            "agent_layer",
             "evaluation_criteria",
             "metadata"
         },
@@ -741,6 +843,164 @@ schema::ScenarioDefinition YamlSerializer::deserialize(const std::string& yaml_c
             
             scenario.events.push_back(event);
         }
+    }
+
+    if (root["agent_layer"]) {
+        validate_allowed_keys(
+            root["agent_layer"],
+            {"world", "locations", "items", "shops", "agents", "policies"},
+            "agent_layer");
+
+        schema::AgentLayerDefinition layer;
+        const auto world_node = root["agent_layer"]["world"];
+        if (!world_node) {
+            throw std::runtime_error("agent_layer.world is required when agent_layer is set");
+        }
+        validate_allowed_keys(
+            world_node,
+            {
+                "duration",
+                "time_unit",
+                "map_width",
+                "map_height",
+                "default_walking_speed",
+                "max_event_count"
+            },
+            "agent_layer.world");
+
+        layer.world.duration = world_node["duration"].as<double>();
+        layer.world.time_unit = world_node["time_unit"].as<std::string>();
+        layer.world.map_width = world_node["map_width"].as<double>();
+        layer.world.map_height = world_node["map_height"].as<double>();
+        layer.world.default_walking_speed = world_node["default_walking_speed"].as<double>();
+        layer.world.max_event_count = world_node["max_event_count"].as<std::size_t>();
+
+        if (const auto locations_node = root["agent_layer"]["locations"]) {
+            for (const auto& node : locations_node) {
+                validate_allowed_keys(node, {"location_id", "location_type", "x", "y"}, "agent_layer.location");
+                schema::LocationDescriptor location;
+                location.location_id = node["location_id"].as<std::string>();
+                location.location_type = node["location_type"].as<std::string>();
+                location.x = node["x"].as<double>();
+                location.y = node["y"].as<double>();
+                layer.locations.push_back(std::move(location));
+            }
+        }
+
+        if (const auto items_node = root["agent_layer"]["items"]) {
+            for (const auto& node : items_node) {
+                validate_allowed_keys(node, {"item_id", "category", "tags", "base_appeal"}, "agent_layer.item");
+                schema::ItemDescriptor item;
+                item.item_id = node["item_id"].as<std::string>();
+                item.category = node["category"].as<std::string>();
+                item.base_appeal = node["base_appeal"].as<double>();
+                if (node["tags"]) {
+                    for (const auto& tag : node["tags"]) {
+                        item.tags.push_back(tag.as<std::string>());
+                    }
+                }
+                layer.items.push_back(std::move(item));
+            }
+        }
+
+        if (const auto shops_node = root["agent_layer"]["shops"]) {
+            for (const auto& node : shops_node) {
+                validate_allowed_keys(
+                    node,
+                    {"shop_id", "location_ref", "inventory", "service_time", "queue_capacity"},
+                    "agent_layer.shop");
+
+                schema::ShopDescriptor shop;
+                shop.shop_id = node["shop_id"].as<std::string>();
+                shop.location_ref = node["location_ref"].as<std::string>();
+                shop.service_time = node["service_time"].as<double>();
+                shop.queue_capacity = node["queue_capacity"].as<int64_t>();
+                if (node["inventory"]) {
+                    for (const auto& inventory_node : node["inventory"]) {
+                        validate_allowed_keys(inventory_node, {"item_id", "price", "stock"}, "agent_layer.shop.inventory");
+                        schema::ShopInventoryEntry entry;
+                        entry.item_id = inventory_node["item_id"].as<std::string>();
+                        entry.price = inventory_node["price"].as<double>();
+                        entry.stock = inventory_node["stock"].as<int64_t>();
+                        shop.inventory.push_back(std::move(entry));
+                    }
+                }
+                layer.shops.push_back(std::move(shop));
+            }
+        }
+
+        if (const auto agents_node = root["agent_layer"]["agents"]) {
+            for (const auto& node : agents_node) {
+                validate_allowed_keys(
+                    node,
+                    {
+                        "agent_id",
+                        "start_location_ref",
+                        "budget",
+                        "movement_speed",
+                        "hunger",
+                        "social_susceptibility",
+                        "memory_slots",
+                        "policy_ref",
+                        "traits",
+                        "preferences"
+                    },
+                    "agent_layer.agent");
+
+                schema::AgentDescriptor agent;
+                agent.agent_id = node["agent_id"].as<std::string>();
+                agent.start_location_ref = node["start_location_ref"].as<std::string>();
+                agent.budget = node["budget"].as<double>();
+                agent.movement_speed = node["movement_speed"].as<double>();
+                agent.hunger = node["hunger"] ? node["hunger"].as<double>() : 0.0;
+                agent.social_susceptibility =
+                    node["social_susceptibility"] ? node["social_susceptibility"].as<double>() : 0.0;
+                agent.memory_slots = node["memory_slots"] ? node["memory_slots"].as<std::size_t>() : 8;
+                if (node["policy_ref"]) {
+                    agent.policy_ref = node["policy_ref"].as<std::string>();
+                }
+                if (node["traits"]) {
+                    for (const auto& trait : node["traits"]) {
+                        agent.traits[trait.first.as<std::string>()] = trait.second.as<double>();
+                    }
+                }
+                if (node["preferences"]) {
+                    for (const auto& preference : node["preferences"]) {
+                        agent.preferences[preference.first.as<std::string>()] = preference.second.as<double>();
+                    }
+                }
+                layer.agents.push_back(std::move(agent));
+            }
+        }
+
+        if (const auto policies_node = root["agent_layer"]["policies"]) {
+            for (const auto& node : policies_node) {
+                validate_allowed_keys(
+                    node,
+                    {
+                        "policy_id",
+                        "movement_policy",
+                        "observation_policy",
+                        "conversation_policy",
+                        "purchase_policy"
+                    },
+                    "agent_layer.policy");
+
+                schema::PolicyDescriptor policy;
+                policy.policy_id = node["policy_id"].as<std::string>();
+                policy.movement_policy =
+                    node["movement_policy"] ? node["movement_policy"].as<std::string>() : "default";
+                policy.observation_policy =
+                    node["observation_policy"] ? node["observation_policy"].as<std::string>() : "default";
+                policy.conversation_policy =
+                    node["conversation_policy"] ? node["conversation_policy"].as<std::string>() : "default";
+                policy.purchase_policy =
+                    node["purchase_policy"] ? node["purchase_policy"].as<std::string>() : "default";
+                layer.policies.push_back(std::move(policy));
+            }
+        }
+
+        scenario.agent_layer = std::move(layer);
     }
     
     // Evaluation criteria

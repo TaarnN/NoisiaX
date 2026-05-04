@@ -11,6 +11,9 @@ Version: `1.0.0`
 - Strong scenario schema and validation gates
 - Deterministic compilation into runtime artifacts
 - Event-driven runtime with push invalidation + pull recompute
+- Optional v2 `agent_layer` runtime for deterministic market-style agent simulation
+- Deterministic seed streams with traceable draws for movement, decisions, social effects, and service jitter
+- Detailed run API with event/decision/state-change traces and final state snapshots
 - Runtime constraint enforcement
 - Checkpoint save/load with scenario metadata
 - Public API and CLI entrypoints
@@ -41,6 +44,7 @@ The build produces a `noisiax` executable with:
 noisiax validate <scenario.yaml>
 noisiax compile <scenario.yaml>
 noisiax run <scenario.yaml>
+noisiax run <scenario.yaml> --trace full --output result.json
 ```
 
 ## Project Layout

@@ -312,6 +312,10 @@ ValidationReport ScenarioValidator::validate(const schema::ScenarioDefinition& s
     // Gate 7: Validate events
     auto events_result = validate_events(scenario);
     report.add_result(events_result);
+
+    // Gate 7.5: Validate optional v2 agent layer
+    auto agent_layer_result = validate_agent_layer(scenario);
+    report.add_result(agent_layer_result);
     
     // Gate 8: Validate evaluation criteria
     auto evaluation_result = validate_evaluation_criteria(scenario);
@@ -634,6 +638,200 @@ ValidationResult ScenarioValidator::validate_events(const schema::ScenarioDefini
     }
     
     result.message = "All events validated";
+    return result;
+}
+
+ValidationResult ScenarioValidator::validate_agent_layer(const schema::ScenarioDefinition& scenario) {
+    ValidationResult result;
+    result.rule_name = "agent_layer";
+    result.passed = true;
+    result.level = schema::ValidationLevel::REJECT;
+
+    if (!scenario.agent_layer.has_value()) {
+        result.message = "No agent_layer defined (v1 execution path)";
+        return result;
+    }
+
+    const auto& layer = *scenario.agent_layer;
+    if (!std::isfinite(layer.world.duration) || layer.world.duration <= 0.0) {
+        result.passed = false;
+        result.message = "agent_layer.world.duration must be finite and > 0";
+        return result;
+    }
+    if (layer.world.max_event_count == 0) {
+        result.passed = false;
+        result.message = "agent_layer.world.max_event_count must be > 0";
+        return result;
+    }
+    if (!std::isfinite(layer.world.default_walking_speed) || layer.world.default_walking_speed < 0.0) {
+        result.passed = false;
+        result.message = "agent_layer.world.default_walking_speed must be finite and >= 0";
+        return result;
+    }
+
+    std::set<std::string> location_ids;
+    for (const auto& location : layer.locations) {
+        if (location.location_id.empty()) {
+            result.passed = false;
+            result.message = "agent_layer location_id cannot be empty";
+            return result;
+        }
+        if (!location_ids.insert(location.location_id).second) {
+            result.passed = false;
+            result.message = "Duplicate agent_layer location_id: " + location.location_id;
+            return result;
+        }
+        if (!std::isfinite(location.x) || !std::isfinite(location.y)) {
+            result.passed = false;
+            result.message = "agent_layer location coordinates must be finite";
+            return result;
+        }
+    }
+    if (location_ids.empty()) {
+        result.passed = false;
+        result.message = "agent_layer.locations must not be empty";
+        return result;
+    }
+
+    std::set<std::string> item_ids;
+    for (const auto& item : layer.items) {
+        if (item.item_id.empty()) {
+            result.passed = false;
+            result.message = "agent_layer item_id cannot be empty";
+            return result;
+        }
+        if (!item_ids.insert(item.item_id).second) {
+            result.passed = false;
+            result.message = "Duplicate agent_layer item_id: " + item.item_id;
+            return result;
+        }
+        if (!std::isfinite(item.base_appeal) || item.base_appeal < 0.0) {
+            result.passed = false;
+            result.message = "agent_layer item base_appeal must be finite and >= 0 for item: " + item.item_id;
+            return result;
+        }
+    }
+    if (item_ids.empty()) {
+        result.passed = false;
+        result.message = "agent_layer.items must not be empty";
+        return result;
+    }
+
+    std::set<std::string> policy_ids;
+    for (const auto& policy : layer.policies) {
+        if (policy.policy_id.empty()) {
+            result.passed = false;
+            result.message = "agent_layer policy_id cannot be empty";
+            return result;
+        }
+        if (!policy_ids.insert(policy.policy_id).second) {
+            result.passed = false;
+            result.message = "Duplicate agent_layer policy_id: " + policy.policy_id;
+            return result;
+        }
+    }
+
+    std::set<std::string> shop_ids;
+    for (const auto& shop : layer.shops) {
+        if (shop.shop_id.empty()) {
+            result.passed = false;
+            result.message = "agent_layer shop_id cannot be empty";
+            return result;
+        }
+        if (!shop_ids.insert(shop.shop_id).second) {
+            result.passed = false;
+            result.message = "Duplicate agent_layer shop_id: " + shop.shop_id;
+            return result;
+        }
+        if (location_ids.find(shop.location_ref) == location_ids.end()) {
+            result.passed = false;
+            result.message = "Shop " + shop.shop_id + " references unknown location: " + shop.location_ref;
+            return result;
+        }
+        if (!std::isfinite(shop.service_time) || shop.service_time < 0.0) {
+            result.passed = false;
+            result.message = "Shop " + shop.shop_id + " has invalid non-negative service_time";
+            return result;
+        }
+        if (shop.queue_capacity < 0) {
+            result.passed = false;
+            result.message = "Shop " + shop.shop_id + " has negative queue_capacity";
+            return result;
+        }
+        for (const auto& inventory : shop.inventory) {
+            if (item_ids.find(inventory.item_id) == item_ids.end()) {
+                result.passed = false;
+                result.message = "Shop " + shop.shop_id + " inventory references unknown item: " + inventory.item_id;
+                return result;
+            }
+            if (!std::isfinite(inventory.price) || inventory.price < 0.0) {
+                result.passed = false;
+                result.message = "Shop " + shop.shop_id + " has invalid non-negative price";
+                return result;
+            }
+            if (inventory.stock < 0) {
+                result.passed = false;
+                result.message = "Shop " + shop.shop_id + " has negative stock";
+                return result;
+            }
+        }
+    }
+    if (shop_ids.empty()) {
+        result.passed = false;
+        result.message = "agent_layer.shops must not be empty";
+        return result;
+    }
+
+    std::set<std::string> agent_ids;
+    for (const auto& agent : layer.agents) {
+        if (agent.agent_id.empty()) {
+            result.passed = false;
+            result.message = "agent_layer agent_id cannot be empty";
+            return result;
+        }
+        if (!agent_ids.insert(agent.agent_id).second) {
+            result.passed = false;
+            result.message = "Duplicate agent_layer agent_id: " + agent.agent_id;
+            return result;
+        }
+        if (location_ids.find(agent.start_location_ref) == location_ids.end()) {
+            result.passed = false;
+            result.message = "Agent " + agent.agent_id + " references unknown start_location_ref: " + agent.start_location_ref;
+            return result;
+        }
+        if (!agent.policy_ref.empty() && policy_ids.find(agent.policy_ref) == policy_ids.end()) {
+            result.passed = false;
+            result.message = "Agent " + agent.agent_id + " references unknown policy_ref: " + agent.policy_ref;
+            return result;
+        }
+        if (!std::isfinite(agent.budget) || agent.budget < 0.0) {
+            result.passed = false;
+            result.message = "Agent " + agent.agent_id + " has invalid non-negative budget";
+            return result;
+        }
+        if (!std::isfinite(agent.movement_speed) || agent.movement_speed < 0.0) {
+            result.passed = false;
+            result.message = "Agent " + agent.agent_id + " has invalid non-negative movement_speed";
+            return result;
+        }
+        if (!std::isfinite(agent.hunger) || agent.hunger < 0.0) {
+            result.passed = false;
+            result.message = "Agent " + agent.agent_id + " has invalid non-negative hunger";
+            return result;
+        }
+        if (!std::isfinite(agent.social_susceptibility) || agent.social_susceptibility < 0.0) {
+            result.passed = false;
+            result.message = "Agent " + agent.agent_id + " has invalid non-negative social_susceptibility";
+            return result;
+        }
+    }
+    if (agent_ids.empty()) {
+        result.passed = false;
+        result.message = "agent_layer.agents must not be empty";
+        return result;
+    }
+
+    result.message = "agent_layer validated";
     return result;
 }
 
