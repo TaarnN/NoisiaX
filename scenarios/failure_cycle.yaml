@@ -1,0 +1,74 @@
+# NoisiaX V1 Failure Scenario - Cyclic Dependencies
+# This scenario demonstrates validation failure due to cyclic dependency graph
+
+scenario_id: "failure_cycle_001"
+schema_version: "1.0.0"
+master_seed: 42
+
+goal_statement: |
+  This scenario intentionally contains a cyclic dependency to test
+  the validator's cycle detection capability.
+
+assumptions:
+  - assumption_id: "assume_001"
+    category: "test"
+    description: "This is a test scenario for validation failures"
+    rationale: "Testing cycle detection"
+    confidence_level: WARN
+
+entities:
+  - entity_id: "entity_a"
+    entity_type: "test_entity"
+    description: "Entity A in cycle"
+    attributes: {}
+
+variables:
+  - variable_id: "var_a"
+    entity_ref: "entity_a"
+    type: FLOAT
+    default_value: 10.0
+    description: "Variable A - part of cycle"
+
+  - variable_id: "var_b"
+    entity_ref: "entity_a"
+    type: FLOAT
+    default_value: 20.0
+    description: "Variable B - part of cycle"
+
+  - variable_id: "var_c"
+    entity_ref: "entity_a"
+    type: FLOAT
+    default_value: 30.0
+    description: "Variable C - part of cycle"
+
+dependency_edges:
+  # Creates a cycle: var_a -> var_b -> var_c -> var_a
+  - edge_id: "edge_001"
+    source_variable: "var_a"
+    target_variable: "var_b"
+    propagation_function_id: "linear_scale"
+    weight: 1.0
+
+  - edge_id: "edge_002"
+    source_variable: "var_b"
+    target_variable: "var_c"
+    propagation_function_id: "linear_scale"
+    weight: 1.0
+
+  - edge_id: "edge_003"
+    source_variable: "var_c"
+    target_variable: "var_a"
+    propagation_function_id: "linear_scale"
+    weight: 1.0
+
+constraints: []
+
+events: []
+
+evaluation_criteria:
+  - criterion_id: "eval_001"
+    metric_name: "cycle_detection_test"
+    aggregation_method: FINAL
+    input_variables:
+      - "var_a"
+    description: "Should never reach evaluation due to cycle rejection"
