@@ -38,6 +38,21 @@ set_target_properties(noisiax PROPERTIES
   SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
+# Add all source files
+target_sources(noisiax
+  PRIVATE
+    src/noisiax.cpp
+    src/engine/simulation_engine.cpp
+    src/serialization/yaml_serializer.cpp
+    src/validation/scenario_validator.cpp
+    src/compiler/scenario_compiler.cpp
+    src/scheduler/event_scheduler.cpp
+)
+
+# Find yaml-cpp
+find_package(yaml-cpp REQUIRED)
+target_link_libraries(noisiax PRIVATE yaml-cpp)
+
 install(
   TARGETS noisiax
   EXPORT NoisiaXTargets
@@ -87,3 +102,6 @@ if(BUILD_TESTING)
 
   add_test(NAME noisiax_tests COMMAND noisiax_tests)
 endif()
+
+# Scenario fixtures for testing
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/scenarios DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
