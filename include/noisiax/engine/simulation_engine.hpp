@@ -7,6 +7,7 @@
 #include <string>
 #include <cstdint>
 #include <functional>
+#include <set>
 
 namespace noisiax::engine {
 
@@ -57,6 +58,7 @@ public:
      * @param variable_id The variable to mark stale
      */
     void mark_stale(const std::string& variable_id);
+    void clear_stale(const std::string& variable_id);
     
     /**
      * @brief Check if a variable is stale
@@ -172,11 +174,17 @@ public:
     std::vector<std::string> compute_stale_closure(const SimulationState& state) const;
     
 private:
+    struct ReverseAdjacencyEntry {
+        std::string source_variable;
+        compiler::AdjacencyEntry edge;
+    };
+
     // Static adjacency list: source -> [(target, function_id, weight)]
     std::map<std::string, std::vector<compiler::AdjacencyEntry>> adjacency_list_;
     
     // Reverse adjacency for pull recompute: target -> [sources]
-    std::map<std::string, std::vector<std::string>> reverse_adjacency_;
+    std::map<std::string, std::vector<ReverseAdjacencyEntry>> reverse_adjacency_;
+    std::map<std::string, compiler::ParameterHandle> parameter_handles_;
     
     // Registered propagation functions
     std::map<std::string, PropagationFunc> functions_;
@@ -188,6 +196,8 @@ private:
     void traverse_upstream(const std::string& start,
                           std::vector<std::string>& result,
                           std::set<std::string>& visited) const;
+    double get_numeric_value(const std::string& variable_id, const SimulationState& state) const;
+    bool set_numeric_value(const std::string& variable_id, double value, SimulationState& state) const;
 };
 
 } // namespace noisiax::engine

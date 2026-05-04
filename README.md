@@ -1,26 +1,51 @@
 # NoisiaX
 
-Starter scaffold for a modern C++ library using CMake.
+NoisiaX is a deterministic, scenario-first C++20 runtime for executing structured YAML scenarios through a strict pipeline:
 
-## Layout
+`YAML -> validate -> compile -> run`
 
-- `include/` public headers
-- `src/` library implementation
-- `tests/` basic test executable
-- `cmake/` package configuration template
+Version: `1.0.0`
+
+## Features
+
+- Strong scenario schema and validation gates
+- Deterministic compilation into runtime artifacts
+- Event-driven runtime with push invalidation + pull recompute
+- Runtime constraint enforcement
+- Checkpoint save/load with scenario metadata
+- Public API and CLI entrypoints
 
 ## Build
 
 ```sh
 cmake -S . -B build
 cmake --build build
-ctest --test-dir build
 ```
 
-## Install
+`yaml-cpp` is resolved automatically:
+
+- Uses an installed `yaml-cpp` package when available
+- Falls back to fetching `yaml-cpp` (`yaml-cpp-0.8.0`) during configure
+
+## Test
 
 ```sh
-cmake -S . -B build
-cmake --build build
-cmake --install build --prefix ./install
+ctest --test-dir build --output-on-failure
 ```
+
+## CLI
+
+The build produces a `noisiax` executable with:
+
+```sh
+noisiax validate <scenario.yaml>
+noisiax compile <scenario.yaml>
+noisiax run <scenario.yaml>
+```
+
+## Project Layout
+
+- `include/noisiax/` public headers (schema, validation, compiler, engine, scheduler, serialization, API)
+- `src/` implementation
+- `scenarios/` fixture scenarios (`happy_path.yaml`, `failure_cycle.yaml`)
+- `tests/` integration and regression tests

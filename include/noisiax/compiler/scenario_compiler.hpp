@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <functional>
+#include <variant>
 
 namespace noisiax::compiler {
 
@@ -53,9 +54,11 @@ struct ScheduledEvent {
  */
 struct ConstraintProgram {
     std::string constraint_id;
+    std::vector<std::string> variable_ids;
     std::vector<std::size_t> variable_offsets;
     std::string compiled_expression;
     schema::ValidationLevel enforcement_level;
+    std::string error_message;
 };
 
 /**
@@ -66,8 +69,10 @@ struct CompiledScenario {
     uint64_t master_seed;
     
     // Runtime artifacts
+    std::map<std::string, std::variant<int64_t, double, std::string, bool>> initial_values;
     std::map<std::string, ParameterHandle> parameter_handles;
     std::map<std::string, std::vector<AdjacencyEntry>> adjacency_lists;  // source -> [targets]
+    std::vector<schema::DependencyEdge> dependency_edges;
     std::vector<ScheduledEvent> event_queue;
     std::vector<ConstraintProgram> constraint_programs;
     

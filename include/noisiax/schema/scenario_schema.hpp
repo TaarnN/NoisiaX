@@ -37,6 +37,8 @@ struct UnitSpec {
     std::string name;
     std::string symbol;
     std::map<std::string, double> conversion_factors;
+
+    bool operator==(const UnitSpec& other) const = default;
 };
 
 /**

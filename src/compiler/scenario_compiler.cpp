@@ -1,5 +1,6 @@
 #include "noisiax/compiler/scenario_compiler.hpp"
 #include <stdexcept>
+#include <type_traits>
 
 namespace noisiax::compiler {
 
@@ -7,12 +8,28 @@ CompiledScenario ScenarioCompiler::compile(const schema::ScenarioDefinition& sce
     CompiledScenario compiled;
     compiled.scenario_id = scenario.scenario_id;
     compiled.master_seed = scenario.master_seed;
+    compiled.dependency_edges = scenario.dependency_edges;
     
     // Register default propagation functions
     register_default_functions();
     
     // Build parameter handles
     compiled.parameter_handles = build_parameter_handles(scenario);
+    for (const auto& variable : scenario.variables) {
+        if (variable.type == schema::VariableType::LIST) {
+            continue;
+        }
+
+        std::visit([&](const auto& value) {
+            using ValueType = std::decay_t<decltype(value)>;
+            if constexpr (std::is_same_v<ValueType, int64_t> ||
+                          std::is_same_v<ValueType, double> ||
+                          std::is_same_v<ValueType, std::string> ||
+                          std::is_same_v<ValueType, bool>) {
+                compiled.initial_values[variable.variable_id] = value;
+            }
+        }, variable.default_value);
+    }
     
     // Build adjacency lists
     compiled.adjacency_lists = build_adjacency_lists(scenario, compiled.parameter_handles);
@@ -94,6 +111,10 @@ std::map<std::string, std::vector<AdjacencyEntry>> ScenarioCompiler::build_adjac
     std::map<std::string, std::vector<AdjacencyEntry>> adjacency;
     
     for (const auto& edge : scenario.dependency_edges) {
+        if (!registered_functions_.contains(edge.propagation_function_id)) {
+            throw std::runtime_error("Unknown propagation function: " + edge.propagation_function_id);
+        }
+
         AdjacencyEntry entry;
         entry.target_variable = edge.target_variable;
         entry.propagation_function_id = edge.propagation_function_id;
@@ -144,6 +165,8 @@ std::vector<ConstraintProgram> ScenarioCompiler::build_constraint_programs(
         program.constraint_id = constraint.constraint_id;
         program.enforcement_level = constraint.enforcement_level;
         program.compiled_expression = constraint.constraint_expression;
+        program.error_message = constraint.error_message;
+        program.variable_ids = constraint.affected_variables;
         
         for (const auto& var_id : constraint.affected_variables) {
             auto it = handles.find(var_id);
@@ -164,7 +187,7 @@ void ScenarioCompiler::register_default_functions() {
     });
     
     register_propagation_function("apply_discount", [](double& target, const double& source, double weight) {
-        target = source * (1.0 - weight);
+        target = target * (1.0 + source * weight);
     });
     
     register_propagation_function("additive", [](double& target, const double& source, double weight) {
