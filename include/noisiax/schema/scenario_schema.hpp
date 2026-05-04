@@ -157,6 +157,113 @@ struct ScenarioMetadata {
 };
 
 /**
+ * @brief World-level settings for the optional v2 agent simulation layer.
+ */
+struct AgentWorldDescriptor {
+    double duration = 0.0;
+    std::string time_unit = "minutes";
+    double map_width = 0.0;
+    double map_height = 0.0;
+    double default_walking_speed = 1.0;
+    std::size_t max_event_count = 100000;
+
+    bool operator==(const AgentWorldDescriptor& other) const = default;
+};
+
+/**
+ * @brief A named location with deterministic coordinates.
+ */
+struct LocationDescriptor {
+    std::string location_id;
+    std::string location_type;
+    double x = 0.0;
+    double y = 0.0;
+
+    bool operator==(const LocationDescriptor& other) const = default;
+};
+
+/**
+ * @brief Purchasable item definition for the market layer.
+ */
+struct ItemDescriptor {
+    std::string item_id;
+    std::string category;
+    std::vector<std::string> tags;
+    double base_appeal = 1.0;
+
+    bool operator==(const ItemDescriptor& other) const = default;
+};
+
+/**
+ * @brief Per-shop inventory row.
+ */
+struct ShopInventoryEntry {
+    std::string item_id;
+    double price = 0.0;
+    int64_t stock = 0;
+
+    bool operator==(const ShopInventoryEntry& other) const = default;
+};
+
+/**
+ * @brief Shop definition for v2 agent runtime.
+ */
+struct ShopDescriptor {
+    std::string shop_id;
+    std::string location_ref;
+    std::vector<ShopInventoryEntry> inventory;
+    double service_time = 1.0;
+    int64_t queue_capacity = 1;
+
+    bool operator==(const ShopDescriptor& other) const = default;
+};
+
+/**
+ * @brief Agent definition for v2 market runtime.
+ */
+struct AgentDescriptor {
+    std::string agent_id;
+    std::string start_location_ref;
+    double budget = 0.0;
+    double movement_speed = 0.0;
+    double hunger = 0.0;
+    double social_susceptibility = 0.0;
+    std::map<std::string, double> traits;
+    std::map<std::string, double> preferences;
+    std::size_t memory_slots = 8;
+    std::string policy_ref;
+
+    bool operator==(const AgentDescriptor& other) const = default;
+};
+
+/**
+ * @brief Named behavior policy selector for agents.
+ */
+struct PolicyDescriptor {
+    std::string policy_id;
+    std::string movement_policy = "default";
+    std::string observation_policy = "default";
+    std::string conversation_policy = "default";
+    std::string purchase_policy = "default";
+
+    bool operator==(const PolicyDescriptor& other) const = default;
+};
+
+/**
+ * @brief Optional v2 market simulation layer.
+ */
+struct AgentLayerDefinition {
+    AgentWorldDescriptor world;
+    std::vector<LocationDescriptor> locations;
+    std::vector<ItemDescriptor> items;
+    std::vector<ShopDescriptor> shops;
+    std::vector<AgentDescriptor> agents;
+    std::vector<PolicyDescriptor> policies;
+
+    bool operator==(const AgentLayerDefinition& other) const = default;
+};
+
+/**
  * @brief Complete scenario definition - the root schema object
  */
 struct ScenarioDefinition {
@@ -176,6 +283,7 @@ struct ScenarioDefinition {
     
     // Optional fields for v1
     std::vector<EventDescriptor> events;
+    std::optional<AgentLayerDefinition> agent_layer;
     std::optional<ScenarioMetadata> metadata;
     
     // Explicitly excluded in v1 (documented for clarity):

@@ -7,6 +7,7 @@
 #include <memory>
 #include <functional>
 #include <variant>
+#include <optional>
 
 namespace noisiax::compiler {
 
@@ -62,6 +63,24 @@ struct ConstraintProgram {
 };
 
 /**
+ * @brief Compiled index tables for optional v2 agent layer.
+ */
+struct CompiledAgentLayer {
+    schema::AgentWorldDescriptor world;
+    std::vector<schema::LocationDescriptor> locations;
+    std::vector<schema::ItemDescriptor> items;
+    std::vector<schema::ShopDescriptor> shops;
+    std::vector<schema::AgentDescriptor> agents;
+    std::vector<schema::PolicyDescriptor> policies;
+    std::map<std::string, std::size_t> location_index;
+    std::map<std::string, std::size_t> item_index;
+    std::map<std::string, std::size_t> shop_index;
+    std::map<std::string, std::size_t> agent_index;
+    std::map<std::string, std::size_t> policy_index;
+    std::vector<std::vector<std::size_t>> shops_by_item_index;
+};
+
+/**
  * @brief Compiled scenario artifact - output from ScenarioCompiler
  */
 struct CompiledScenario {
@@ -75,6 +94,7 @@ struct CompiledScenario {
     std::vector<schema::DependencyEdge> dependency_edges;
     std::vector<ScheduledEvent> event_queue;
     std::vector<ConstraintProgram> constraint_programs;
+    std::optional<CompiledAgentLayer> agent_layer;
     
     // Pre-registered propagation functions mapping
     std::map<std::string, std::function<void(double&, const double&, double)>> propagation_functions;

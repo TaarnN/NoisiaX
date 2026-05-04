@@ -1,8 +1,61 @@
 #include "noisiax/compiler/scenario_compiler.hpp"
+#include <algorithm>
 #include <stdexcept>
 #include <type_traits>
 
 namespace noisiax::compiler {
+namespace {
+
+std::optional<CompiledAgentLayer> compile_agent_layer(const schema::ScenarioDefinition& scenario) {
+    if (!scenario.agent_layer.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto& layer = *scenario.agent_layer;
+    CompiledAgentLayer compiled;
+    compiled.world = layer.world;
+    compiled.locations = layer.locations;
+    compiled.items = layer.items;
+    compiled.shops = layer.shops;
+    compiled.agents = layer.agents;
+    compiled.policies = layer.policies;
+
+    for (std::size_t i = 0; i < compiled.locations.size(); ++i) {
+        compiled.location_index.emplace(compiled.locations[i].location_id, i);
+    }
+    for (std::size_t i = 0; i < compiled.items.size(); ++i) {
+        compiled.item_index.emplace(compiled.items[i].item_id, i);
+    }
+    for (std::size_t i = 0; i < compiled.shops.size(); ++i) {
+        compiled.shop_index.emplace(compiled.shops[i].shop_id, i);
+    }
+    for (std::size_t i = 0; i < compiled.agents.size(); ++i) {
+        compiled.agent_index.emplace(compiled.agents[i].agent_id, i);
+    }
+    for (std::size_t i = 0; i < compiled.policies.size(); ++i) {
+        compiled.policy_index.emplace(compiled.policies[i].policy_id, i);
+    }
+
+    compiled.shops_by_item_index.assign(compiled.items.size(), {});
+    for (std::size_t shop_index = 0; shop_index < compiled.shops.size(); ++shop_index) {
+        const auto& shop = compiled.shops[shop_index];
+        for (const auto& inventory : shop.inventory) {
+            const auto item_it = compiled.item_index.find(inventory.item_id);
+            if (item_it == compiled.item_index.end()) {
+                throw std::runtime_error(
+                    "Invalid agent_layer inventory item reference: " + inventory.item_id);
+            }
+            auto& slots = compiled.shops_by_item_index[item_it->second];
+            if (std::find(slots.begin(), slots.end(), shop_index) == slots.end()) {
+                slots.push_back(shop_index);
+            }
+        }
+    }
+
+    return compiled;
+}
+
+}  // namespace
 
 CompiledScenario ScenarioCompiler::compile(const schema::ScenarioDefinition& scenario) {
     CompiledScenario compiled;
@@ -39,6 +92,7 @@ CompiledScenario ScenarioCompiler::compile(const schema::ScenarioDefinition& sce
     
     // Build constraint programs
     compiled.constraint_programs = build_constraint_programs(scenario, compiled.parameter_handles);
+    compiled.agent_layer = compile_agent_layer(scenario);
     
     // Copy registered functions
     compiled.propagation_functions = registered_functions_;
