@@ -14,9 +14,11 @@ build/
 cmake-build-*/
 CMakeFiles/
 scenarios/
+tools/
 CMakeCache.txt
 Makefile
 cmake_install_manifest.txt
+result.json
 
 # Dependencies
 external/
