@@ -305,4 +305,300 @@ std::string load_checkpoint(const std::string& filepath, engine::SimulationState
  */
 [[nodiscard]] std::string_view name() noexcept;
 
+// ============================================================================
+// V4 Experiment APIs and Types
+// ============================================================================
+
+namespace experiment {
+
+/**
+ * @brief Options for resolving a scenario with imports and composition.
+ */
+struct ResolveOptions {
+    std::vector<std::string> import_paths;  // Additional search paths for imports
+    bool validate_after_resolve = true;     // Run validation after composition
+    bool output_canonical = true;           // Include canonical YAML in result
+};
+
+/**
+ * @brief Result of scenario resolution/composition.
+ */
+struct ResolvedScenario {
+    schema::ScenarioDefinition definition;
+    std::string canonical_yaml;
+    std::string source_hash;       // Hash of original source files
+    std::string resolved_hash;     // Hash of resolved/merged scenario
+    std::vector<std::string> imported_files;
+    std::vector<std::string> errors;
+    bool success = false;
+};
+
+/**
+ * @brief Override mode for parameterized variants.
+ */
+enum class OverrideMode {
+    REPLACE,   // Replace value entirely
+    APPEND,    // Append to list/string
+    MERGE      // Merge maps/objects
+};
+
+/**
+ * @brief A parameterized override for experiment variants.
+ * 
+ * Supports two target types:
+ * 1. JSON Pointer path (e.g., "/variables/0/default_value")
+ * 2. Typed-layer component field by {entity_id, component_type_id, field_name}
+ */
+struct ScenarioOverride {
+    std::string override_id;
+    
+    // Target specification (mutually exclusive)
+    std::string json_pointer_path;  // JSON Pointer RFC 6901
+    std::string entity_id;          // For typed-layer overrides
+    std::string component_type_id;  // For typed-layer overrides
+    std::string field_name;         // For typed-layer overrides
+    
+    OverrideMode mode = OverrideMode::REPLACE;
+    schema::TypedScalarValue value;
+};
+
+/**
+ * @brief Seed plan for deterministic ensembles.
+ */
+struct SeedPlan {
+    enum class PlanType {
+        EXPLICIT_LIST,   // Use provided seeds exactly
+        RANGE,           // Generate seeds in range
+        HASH_DERIVED     // Derive from base seed + index
+    };
+    
+    PlanType plan_type = PlanType::EXPLICIT_LIST;
+    std::vector<uint64_t> explicit_seeds;
+    uint64_t base_seed = 0;
+    std::size_t num_runs = 1;
+    std::size_t seed_stride = 1;
+};
+
+/**
+ * @brief Stochastic sampler types for experiment overlays.
+ */
+enum class SamplerType {
+    UNIFORM_INT,
+    UNIFORM_FLOAT,
+    BERNOULLI,
+    CHOICE,
+    WEIGHTED_CHOICE
+};
+
+/**
+ * @brief A stochastic overlay sampler definition.
+ */
+struct StochasticSampler {
+    std::string sampler_id;
+    SamplerType type = SamplerType::UNIFORM_FLOAT;
+    
+    // Parameters based on type
+    int64_t int_min = 0;
+    int64_t int_max = 1;
+    double float_min = 0.0;
+    double float_max = 1.0;
+    double probability = 0.5;  // For bernoulli
+    std::vector<schema::TypedScalarValue> choices;  // For choice/weighted_choice
+    std::vector<double> weights;  // For weighted_choice
+    
+    // Target for applying sampled value
+    std::string json_pointer_path;
+    std::string entity_id;
+    std::string component_type_id;
+    std::string field_name;
+};
+
+/**
+ * @brief Experiment-level stochastic overlay.
+ */
+struct StochasticOverlay {
+    std::string overlay_id;
+    std::vector<StochasticSampler> samplers;
+};
+
+/**
+ * @brief Metric extraction configuration.
+ */
+struct ExperimentMetric {
+    std::string metric_id;
+    std::string description;
+    
+    // Extraction target
+    std::string source = "final_state";  // final_state, events, decisions, summary
+    std::string field_path;              // Path to extract within source
+    std::string aggregation = "mean";    // mean, sum, min, max, count, stddev
+    
+    // Optional filtering
+    std::string filter_expression;       // Simple expression to filter values
+};
+
+/**
+ * @brief Complete experiment definition.
+ */
+struct ExperimentDefinition {
+    std::string experiment_id;
+    std::string schema_version = "4.0.0";
+    
+    // Base scenario reference
+    std::string base_scenario_path;
+    std::optional<schema::ScenarioDefinition> inline_base_scenario;
+    
+    // Composition parameters (imports, namespaces)
+    std::vector<std::string> imports;
+    std::map<std::string, std::string> import_namespaces;
+    
+    // Variants (parameterized overrides)
+    std::vector<ScenarioOverride> variants;
+    
+    // Seed plan for ensemble runs
+    SeedPlan seed_plan;
+    
+    // Stochastic overlays
+    std::vector<StochasticOverlay> overlays;
+    
+    // Metrics to extract
+    std::vector<ExperimentMetric> metrics;
+    
+    // Output settings
+    std::string output_dir = ".";
+    TraceLevel trace_level = TraceLevel::NONE;
+    bool write_run_manifests = true;
+    bool write_summary = true;
+    bool fail_fast = false;
+    
+    // Runtime options passed through to simulation
+    double max_time = -1.0;
+    std::size_t max_events = 100000;
+};
+
+/**
+ * @brief Specification for a single experiment run.
+ */
+struct ExperimentRunSpec {
+    std::string run_id;
+    std::size_t run_index = 0;
+    uint64_t seed = 0;
+    std::vector<ScenarioOverride> applied_overrides;
+    std::map<std::string, schema::TypedScalarValue> overlay_samples;
+    std::string resolved_scenario_hash;
+};
+
+/**
+ * @brief Result from a single experiment run.
+ */
+struct ExperimentRunResult {
+    ExperimentRunSpec spec;
+    RunResult run_result;
+    std::map<std::string, double> extracted_metrics;
+    bool success = false;
+    std::string error_message;
+    double elapsed_seconds = 0.0;
+};
+
+/**
+ * @brief Aggregated metric statistics across runs.
+ */
+struct AggregateMetric {
+    std::string metric_id;
+    std::size_t count = 0;
+    double min_val = 0.0;
+    double max_val = 0.0;
+    double mean = 0.0;
+    double stddev = 0.0;
+    double sum = 0.0;
+};
+
+/**
+ * @brief Manifest for a single run.
+ */
+struct RunManifest {
+    std::string noisiax_version;
+    std::string experiment_id;
+    ExperimentRunSpec run_spec;
+    std::string base_scenario_hash;
+    std::string resolved_scenario_hash;
+    RunOptions runtime_options;
+    bool success = false;
+    std::string final_fingerprint;
+    std::map<std::string, double> metrics;
+};
+
+/**
+ * @brief Report on scenario composition.
+ */
+struct CompositionReport {
+    std::string scenario_id;
+    std::vector<std::string> imported_fragments;
+    std::map<std::string, std::string> namespace_mappings;
+    std::vector<std::string> resolved_ids;
+    std::vector<std::string> duplicate_errors;
+    std::vector<std::string> unresolved_references;
+    std::vector<std::string> circular_import_errors;
+    std::string canonical_hash;
+    bool success = false;
+};
+
+/**
+ * @brief Complete experiment result.
+ */
+struct ExperimentResult {
+    ExperimentDefinition definition;
+    std::string experiment_id;
+    std::string base_scenario_hash;
+    
+    // Run results
+    std::vector<ExperimentRunResult> runs;
+    
+    // Aggregated metrics
+    std::map<std::string, AggregateMetric> aggregated_metrics;
+    
+    // Summary statistics
+    std::size_t total_runs = 0;
+    std::size_t successful_runs = 0;
+    std::size_t failed_runs = 0;
+    double total_elapsed_seconds = 0.0;
+    
+    // Reports
+    CompositionReport composition_report;
+    std::vector<RunManifest> run_manifests;
+    
+    // Output paths
+    std::string manifest_path;
+    std::string summary_path;
+    
+    bool success = false;
+    std::string error_message;
+};
+
+/**
+ * @brief Resolve a scenario with imports and composition.
+ * @param path Path to the scenario YAML file
+ * @param options Resolution options
+ * @return ResolvedScenario with canonical form and hashes
+ */
+ResolvedScenario resolve_scenario(const std::string& path, const ResolveOptions& options = {});
+
+/**
+ * @brief Run an experiment from a YAML definition file.
+ * @param path Path to the experiment YAML file
+ * @param options Optional runtime overrides
+ * @return ExperimentResult with all run results and aggregates
+ */
+ExperimentResult run_experiment(const std::string& path, const RunOptions& options = {});
+
+/**
+ * @brief Run an experiment from an in-memory definition.
+ * @param definition The experiment definition
+ * @param options Optional runtime overrides
+ * @return ExperimentResult with all run results and aggregates
+ */
+ExperimentResult run_experiment(const ExperimentDefinition& definition, const RunOptions& options = {});
+
+} // namespace experiment
+
 } // namespace noisiax

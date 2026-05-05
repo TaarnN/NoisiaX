@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/noisiax_cli.dir/src/noisiax_cli.cpp.o -o noisiax  libnoisiax.a _deps/yaml-cpp-build/libyaml-cppd.a 

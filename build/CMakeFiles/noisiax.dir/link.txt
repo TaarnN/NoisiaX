@@ -1,0 +1,2 @@
+/usr/bin/ar qc libnoisiax.a CMakeFiles/noisiax.dir/src/noisiax.cpp.o CMakeFiles/noisiax.dir/src/engine/simulation_engine.cpp.o CMakeFiles/noisiax.dir/src/engine/agent_runtime.cpp.o CMakeFiles/noisiax.dir/src/engine/typed_runtime.cpp.o CMakeFiles/noisiax.dir/src/serialization/yaml_serializer.cpp.o CMakeFiles/noisiax.dir/src/validation/scenario_validator.cpp.o CMakeFiles/noisiax.dir/src/compiler/scenario_compiler.cpp.o CMakeFiles/noisiax.dir/src/scheduler/event_scheduler.cpp.o
+/usr/bin/ranlib libnoisiax.a
