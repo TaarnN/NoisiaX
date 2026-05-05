@@ -1,0 +1,119 @@
+scenario_id: "v2_budget_stock_pressure"
+schema_version: "2.0.0"
+master_seed: 303
+
+goal_statement: |
+  Exercise v2 candidate filtering when one option becomes out of stock and
+  another option is visible but unaffordable.
+
+assumptions:
+  - assumption_id: "v2_pressure_assume_001"
+    category: "fixture"
+    description: "The runtime should keep tracing unaffordable and out-of-stock candidates."
+    rationale: "Decision traces need to explain rejected options, not only selected ones."
+    confidence_level: REJECT
+
+entities:
+  - entity_id: "v2_pressure_entity"
+    entity_type: "fixture_anchor"
+    description: "Compatibility anchor for v1 validation gates."
+    attributes:
+      fixture: "v2_budget_stock_pressure"
+
+variables:
+  - variable_id: "v2_pressure_anchor"
+    entity_ref: "v2_pressure_entity"
+    type: FLOAT
+    default_value: 1.0
+    min_value: 0
+    description: "Compatibility anchor variable."
+  - variable_id: "v2_pressure_guard"
+    entity_ref: "v2_pressure_entity"
+    type: FLOAT
+    default_value: 1.0
+    min_value: 0
+    description: "Compatibility guard variable."
+
+dependency_edges:
+  - edge_id: "v2_pressure_anchor_guard"
+    source_variable: "v2_pressure_anchor"
+    target_variable: "v2_pressure_guard"
+    propagation_function_id: "linear_scale"
+    weight: 1.0
+
+constraints:
+  - constraint_id: "v2_pressure_guard_non_negative"
+    affected_variables: ["v2_pressure_guard"]
+    constraint_expression: "v2_pressure_guard >= 0"
+    enforcement_level: REJECT
+    error_message: "v2_pressure_guard must remain non-negative."
+
+events: []
+
+evaluation_criteria:
+  - criterion_id: "v2_pressure_eval"
+    metric_name: "compatibility_guard"
+    aggregation_method: FINAL
+    input_variables: ["v2_pressure_guard"]
+    threshold_min: 0
+    description: "Compatibility check for the v1 validation path."
+
+agent_layer:
+  world:
+    duration: 5.0
+    time_unit: "minutes"
+    map_width: 10.0
+    map_height: 10.0
+    default_walking_speed: 1.0
+    max_event_count: 120
+
+  locations:
+    - location_id: "counter"
+      location_type: "shop"
+      x: 1.0
+      y: 1.0
+
+  items:
+    - item_id: "single_cheap_bite"
+      category: "food"
+      tags: ["food", "cheap"]
+      base_appeal: 1.4
+    - item_id: "premium_plate"
+      category: "food"
+      tags: ["food", "premium"]
+      base_appeal: 2.0
+
+  shops:
+    - shop_id: "limited_stall"
+      location_ref: "counter"
+      service_time: 0.1
+      queue_capacity: 2
+      inventory:
+        - item_id: "single_cheap_bite"
+          price: 1.0
+          stock: 1
+        - item_id: "premium_plate"
+          price: 10.0
+          stock: 3
+
+  agents:
+    - agent_id: "budget_buyer"
+      start_location_ref: "counter"
+      budget: 2.0
+      movement_speed: 1.0
+      hunger: 1.0
+      social_susceptibility: 0.0
+      memory_slots: 2
+      policy_ref: "pressure_policy"
+      traits:
+        price_sensitivity: 1.0
+      preferences:
+        single_cheap_bite: 1.5
+        premium_plate: 1.5
+
+  policies:
+    - policy_id: "pressure_policy"
+      movement_policy: "same_location"
+      observation_policy: "none"
+      conversation_policy: "none"
+      purchase_policy: "weighted_rule_v2"

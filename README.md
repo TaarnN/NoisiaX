@@ -200,6 +200,20 @@ Run with detailed trace output:
 ./build/noisiax run path.yaml --trace full --output result.json
 ```
 
+### v4 Composition and Experiments
+
+Resolve a scenario that uses v4 `imports` composition into a canonical YAML file:
+
+```sh
+./build/noisiax resolve scenario.yaml --output canonical.yaml
+```
+
+Run a v4 experiment (seeds, variants, overrides, overlays, and aggregate metrics):
+
+```sh
+./build/noisiax experiment experiment.yaml --output-dir out --trace none
+```
+
 Supported `run` options:
 
 ```text

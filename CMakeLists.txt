@@ -25,6 +25,8 @@ target_sources(noisiax
     src/engine/simulation_engine.cpp
     src/engine/agent_runtime.cpp
     src/engine/typed_runtime.cpp
+    src/experiment/scenario_resolver.cpp
+    src/experiment/experiment_runner.cpp
     src/serialization/yaml_serializer.cpp
     src/validation/scenario_validator.cpp
     src/compiler/scenario_compiler.cpp
@@ -139,6 +141,16 @@ if(BUILD_TESTING)
   add_test(
     NAME noisiax_cli_run
     COMMAND noisiax_cli run ${CMAKE_CURRENT_BINARY_DIR}/scenarios/happy_path.yaml
+  )
+  add_test(
+    NAME noisiax_cli_resolve
+    COMMAND noisiax_cli resolve ${CMAKE_CURRENT_BINARY_DIR}/scenarios/v4_composition_base.yaml
+      --output ${CMAKE_CURRENT_BINARY_DIR}/resolved_v4_composition.yaml
+  )
+  add_test(
+    NAME noisiax_cli_experiment
+    COMMAND noisiax_cli experiment ${CMAKE_CURRENT_BINARY_DIR}/scenarios/v4_experiment_basic.yaml
+      --output-dir ${CMAKE_CURRENT_BINARY_DIR}/v4_experiment_output
   )
 endif()
 

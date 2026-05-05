@@ -1,0 +1,609 @@
+scenario_id: "market_butterfly_v2"
+schema_version: "2.0.0"
+master_seed: 20260504
+
+goal_statement: |
+  Simulate a small real-world market where person-to-person observations and
+  seeded randomness produce deterministic but divergent causal purchase chains.
+
+assumptions:
+  - assumption_id: "v2_assume_001"
+    category: "scope"
+    description: "The market is modeled as a fixed 2D map for this run."
+    rationale: "NoisiaX v2 focuses on deterministic local market behavior."
+    confidence_level: REJECT
+  - assumption_id: "v2_assume_002"
+    category: "behavior"
+    description: "Agents use rule-based deterministic decisions with seeded jitter."
+    rationale: "Keeps replayability while allowing butterfly effects."
+    confidence_level: REJECT
+
+entities:
+  - entity_id: "market_v2_entity"
+    entity_type: "market"
+    description: "Anchor entity for core v1 compatibility fields"
+    attributes:
+      district: "old_town"
+      market_type: "street_food"
+
+variables:
+  - variable_id: "sim_anchor"
+    entity_ref: "market_v2_entity"
+    type: FLOAT
+    default_value: 1.0
+    min_value: 0
+    description: "Compatibility anchor variable"
+  - variable_id: "sim_guard"
+    entity_ref: "market_v2_entity"
+    type: FLOAT
+    default_value: 1.0
+    min_value: 0
+    description: "Compatibility guard variable"
+
+dependency_edges:
+  - edge_id: "anchor_guard_edge"
+    source_variable: "sim_anchor"
+    target_variable: "sim_guard"
+    propagation_function_id: "linear_scale"
+    weight: 1.0
+
+constraints:
+  - constraint_id: "guard_non_negative"
+    affected_variables: ["sim_guard"]
+    constraint_expression: "sim_guard >= 0"
+    enforcement_level: REJECT
+    error_message: "sim_guard must remain non-negative"
+
+events: []
+
+evaluation_criteria:
+  - criterion_id: "compat_eval_001"
+    metric_name: "compatibility_guard"
+    aggregation_method: FINAL
+    input_variables: ["sim_guard"]
+    threshold_min: 0
+    description: "Compatibility check for v1 validation gates"
+
+agent_layer:
+  world:
+    duration: 45.0
+    time_unit: "minutes"
+    map_width: 140.0
+    map_height: 90.0
+    default_walking_speed: 1.4
+    max_event_count: 100000
+
+  locations:
+    - location_id: "plaza_north"
+      location_type: "plaza"
+      x: 20.0
+      y: 78.0
+    - location_id: "plaza_center"
+      location_type: "plaza"
+      x: 70.0
+      y: 45.0
+    - location_id: "plaza_south"
+      location_type: "plaza"
+      x: 114.0
+      y: 16.0
+    - location_id: "loc_shop_01"
+      location_type: "shop"
+      x: 14.0
+      y: 71.0
+    - location_id: "loc_shop_02"
+      location_type: "shop"
+      x: 24.0
+      y: 70.0
+    - location_id: "loc_shop_03"
+      location_type: "shop"
+      x: 33.0
+      y: 68.0
+    - location_id: "loc_shop_04"
+      location_type: "shop"
+      x: 44.0
+      y: 66.0
+    - location_id: "loc_shop_05"
+      location_type: "shop"
+      x: 56.0
+      y: 63.0
+    - location_id: "loc_shop_06"
+      location_type: "shop"
+      x: 66.0
+      y: 61.0
+    - location_id: "loc_shop_07"
+      location_type: "shop"
+      x: 75.0
+      y: 57.0
+    - location_id: "loc_shop_08"
+      location_type: "shop"
+      x: 84.0
+      y: 54.0
+    - location_id: "loc_shop_09"
+      location_type: "shop"
+      x: 94.0
+      y: 49.0
+    - location_id: "loc_shop_10"
+      location_type: "shop"
+      x: 104.0
+      y: 44.0
+    - location_id: "loc_shop_11"
+      location_type: "shop"
+      x: 112.0
+      y: 39.0
+    - location_id: "loc_shop_12"
+      location_type: "shop"
+      x: 117.0
+      y: 34.0
+    - location_id: "loc_shop_13"
+      location_type: "shop"
+      x: 122.0
+      y: 28.0
+    - location_id: "loc_shop_14"
+      location_type: "shop"
+      x: 126.0
+      y: 22.0
+    - location_id: "loc_shop_15"
+      location_type: "shop"
+      x: 118.0
+      y: 18.0
+    - location_id: "loc_shop_16"
+      location_type: "shop"
+      x: 106.0
+      y: 19.0
+    - location_id: "loc_shop_17"
+      location_type: "shop"
+      x: 96.0
+      y: 22.0
+    - location_id: "loc_shop_18"
+      location_type: "shop"
+      x: 84.0
+      y: 24.0
+    - location_id: "loc_shop_19"
+      location_type: "shop"
+      x: 72.0
+      y: 25.0
+    - location_id: "loc_shop_20"
+      location_type: "shop"
+      x: 60.0
+      y: 26.0
+
+  items:
+    - item_id: "pork_skewer"
+      category: "street_food"
+      tags: ["street_food", "grilled", "handheld_snack"]
+      base_appeal: 1.45
+    - item_id: "boiled_corn"
+      category: "street_food"
+      tags: ["street_food", "warm_snack", "handheld_snack"]
+      base_appeal: 1.1
+    - item_id: "grilled_squid"
+      category: "street_food"
+      tags: ["street_food", "grilled", "seafood"]
+      base_appeal: 1.25
+    - item_id: "mango_sticky_rice"
+      category: "dessert"
+      tags: ["dessert", "sweet", "rice_based"]
+      base_appeal: 1.3
+    - item_id: "thai_tea"
+      category: "drink"
+      tags: ["drink", "cold", "sweet"]
+      base_appeal: 1.2
+    - item_id: "coconut_icecream"
+      category: "dessert"
+      tags: ["dessert", "cold", "sweet"]
+      base_appeal: 1.18
+    - item_id: "spring_roll"
+      category: "street_food"
+      tags: ["street_food", "fried", "handheld_snack"]
+      base_appeal: 1.08
+    - item_id: "pad_thai_box"
+      category: "meal"
+      tags: ["meal", "noodle", "savory"]
+      base_appeal: 1.15
+    - item_id: "chicken_satay"
+      category: "street_food"
+      tags: ["street_food", "grilled", "protein"]
+      base_appeal: 1.26
+    - item_id: "banana_pancake"
+      category: "dessert"
+      tags: ["dessert", "sweet", "handheld_snack"]
+      base_appeal: 1.16
+    - item_id: "sticky_rice_pork"
+      category: "meal"
+      tags: ["meal", "rice_based", "protein"]
+      base_appeal: 1.19
+    - item_id: "herbal_jelly"
+      category: "dessert"
+      tags: ["dessert", "cold", "herbal"]
+      base_appeal: 0.96
+
+  shops:
+    - shop_id: "shop_01"
+      location_ref: "loc_shop_01"
+      service_time: 0.9
+      queue_capacity: 4
+      inventory:
+        - item_id: "pork_skewer"
+          price: 2.8
+          stock: 35
+        - item_id: "chicken_satay"
+          price: 2.6
+          stock: 26
+    - shop_id: "shop_02"
+      location_ref: "loc_shop_02"
+      service_time: 1.0
+      queue_capacity: 4
+      inventory:
+        - item_id: "boiled_corn"
+          price: 1.9
+          stock: 40
+        - item_id: "spring_roll"
+          price: 2.1
+          stock: 30
+    - shop_id: "shop_03"
+      location_ref: "loc_shop_03"
+      service_time: 1.1
+      queue_capacity: 3
+      inventory:
+        - item_id: "grilled_squid"
+          price: 3.7
+          stock: 20
+        - item_id: "pork_skewer"
+          price: 3.1
+          stock: 18
+    - shop_id: "shop_04"
+      location_ref: "loc_shop_04"
+      service_time: 0.8
+      queue_capacity: 5
+      inventory:
+        - item_id: "thai_tea"
+          price: 1.8
+          stock: 45
+        - item_id: "herbal_jelly"
+          price: 1.6
+          stock: 28
+    - shop_id: "shop_05"
+      location_ref: "loc_shop_05"
+      service_time: 1.2
+      queue_capacity: 3
+      inventory:
+        - item_id: "pad_thai_box"
+          price: 4.2
+          stock: 22
+        - item_id: "sticky_rice_pork"
+          price: 3.4
+          stock: 24
+    - shop_id: "shop_06"
+      location_ref: "loc_shop_06"
+      service_time: 0.9
+      queue_capacity: 4
+      inventory:
+        - item_id: "mango_sticky_rice"
+          price: 3.0
+          stock: 20
+        - item_id: "coconut_icecream"
+          price: 2.7
+          stock: 25
+    - shop_id: "shop_07"
+      location_ref: "loc_shop_07"
+      service_time: 1.1
+      queue_capacity: 4
+      inventory:
+        - item_id: "pork_skewer"
+          price: 2.9
+          stock: 32
+        - item_id: "boiled_corn"
+          price: 2.0
+          stock: 31
+    - shop_id: "shop_08"
+      location_ref: "loc_shop_08"
+      service_time: 1.0
+      queue_capacity: 4
+      inventory:
+        - item_id: "banana_pancake"
+          price: 2.4
+          stock: 26
+        - item_id: "thai_tea"
+          price: 1.9
+          stock: 36
+    - shop_id: "shop_09"
+      location_ref: "loc_shop_09"
+      service_time: 1.3
+      queue_capacity: 3
+      inventory:
+        - item_id: "grilled_squid"
+          price: 3.8
+          stock: 19
+        - item_id: "chicken_satay"
+          price: 2.9
+          stock: 22
+    - shop_id: "shop_10"
+      location_ref: "loc_shop_10"
+      service_time: 1.0
+      queue_capacity: 4
+      inventory:
+        - item_id: "spring_roll"
+          price: 2.2
+          stock: 33
+        - item_id: "boiled_corn"
+          price: 1.8
+          stock: 34
+    - shop_id: "shop_11"
+      location_ref: "loc_shop_11"
+      service_time: 1.2
+      queue_capacity: 3
+      inventory:
+        - item_id: "pad_thai_box"
+          price: 4.0
+          stock: 18
+        - item_id: "sticky_rice_pork"
+          price: 3.3
+          stock: 21
+    - shop_id: "shop_12"
+      location_ref: "loc_shop_12"
+      service_time: 0.8
+      queue_capacity: 5
+      inventory:
+        - item_id: "thai_tea"
+          price: 1.7
+          stock: 40
+        - item_id: "herbal_jelly"
+          price: 1.5
+          stock: 24
+    - shop_id: "shop_13"
+      location_ref: "loc_shop_13"
+      service_time: 1.1
+      queue_capacity: 4
+      inventory:
+        - item_id: "mango_sticky_rice"
+          price: 3.1
+          stock: 24
+        - item_id: "banana_pancake"
+          price: 2.5
+          stock: 20
+    - shop_id: "shop_14"
+      location_ref: "loc_shop_14"
+      service_time: 1.0
+      queue_capacity: 4
+      inventory:
+        - item_id: "coconut_icecream"
+          price: 2.8
+          stock: 23
+        - item_id: "thai_tea"
+          price: 1.8
+          stock: 33
+    - shop_id: "shop_15"
+      location_ref: "loc_shop_15"
+      service_time: 1.2
+      queue_capacity: 3
+      inventory:
+        - item_id: "sticky_rice_pork"
+          price: 3.5
+          stock: 19
+        - item_id: "pork_skewer"
+          price: 3.0
+          stock: 22
+    - shop_id: "shop_16"
+      location_ref: "loc_shop_16"
+      service_time: 1.0
+      queue_capacity: 4
+      inventory:
+        - item_id: "boiled_corn"
+          price: 1.9
+          stock: 29
+        - item_id: "spring_roll"
+          price: 2.1
+          stock: 28
+    - shop_id: "shop_17"
+      location_ref: "loc_shop_17"
+      service_time: 0.9
+      queue_capacity: 4
+      inventory:
+        - item_id: "chicken_satay"
+          price: 2.8
+          stock: 27
+        - item_id: "grilled_squid"
+          price: 3.6
+          stock: 16
+    - shop_id: "shop_18"
+      location_ref: "loc_shop_18"
+      service_time: 1.1
+      queue_capacity: 3
+      inventory:
+        - item_id: "pad_thai_box"
+          price: 4.1
+          stock: 17
+        - item_id: "banana_pancake"
+          price: 2.6
+          stock: 18
+    - shop_id: "shop_19"
+      location_ref: "loc_shop_19"
+      service_time: 1.0
+      queue_capacity: 4
+      inventory:
+        - item_id: "mango_sticky_rice"
+          price: 3.0
+          stock: 18
+        - item_id: "boiled_corn"
+          price: 1.9
+          stock: 27
+    - shop_id: "shop_20"
+      location_ref: "loc_shop_20"
+      service_time: 0.9
+      queue_capacity: 5
+      inventory:
+        - item_id: "pork_skewer"
+          price: 2.7
+          stock: 30
+        - item_id: "thai_tea"
+          price: 1.7
+          stock: 41
+
+  agents:
+    - agent_id: "agent_a"
+      start_location_ref: "plaza_center"
+      budget: 11.0
+      movement_speed: 1.45
+      hunger: 1.1
+      social_susceptibility: 0.78
+      memory_slots: 10
+      policy_ref: "balanced_policy"
+      traits:
+        sociability: 0.8
+        price_sensitivity: 0.4
+      preferences:
+        pork_skewer: 1.4
+        boiled_corn: 1.0
+        thai_tea: 1.2
+    - agent_id: "agent_b"
+      start_location_ref: "plaza_center"
+      budget: 9.2
+      movement_speed: 1.35
+      hunger: 1.0
+      social_susceptibility: 0.64
+      memory_slots: 8
+      policy_ref: "balanced_policy"
+      traits:
+        sociability: 0.65
+        price_sensitivity: 0.55
+      preferences:
+        pork_skewer: 1.55
+        grilled_squid: 1.2
+        chicken_satay: 1.28
+    - agent_id: "agent_c"
+      start_location_ref: "plaza_north"
+      budget: 6.8
+      movement_speed: 1.5
+      hunger: 0.9
+      social_susceptibility: 0.5
+      memory_slots: 7
+      policy_ref: "budget_policy"
+      traits:
+        sociability: 0.45
+        price_sensitivity: 0.82
+      preferences:
+        boiled_corn: 1.35
+        spring_roll: 1.22
+        thai_tea: 1.14
+    - agent_id: "agent_d"
+      start_location_ref: "plaza_south"
+      budget: 7.4
+      movement_speed: 1.3
+      hunger: 1.2
+      social_susceptibility: 0.72
+      memory_slots: 9
+      policy_ref: "social_policy"
+      traits:
+        sociability: 0.88
+        price_sensitivity: 0.52
+      preferences:
+        pork_skewer: 1.25
+        sticky_rice_pork: 1.2
+        mango_sticky_rice: 1.0
+    - agent_id: "agent_e"
+      start_location_ref: "plaza_north"
+      budget: 10.4
+      movement_speed: 1.42
+      hunger: 1.0
+      social_susceptibility: 0.6
+      memory_slots: 8
+      policy_ref: "balanced_policy"
+      traits:
+        sociability: 0.62
+        price_sensitivity: 0.5
+      preferences:
+        grilled_squid: 1.35
+        thai_tea: 1.22
+        banana_pancake: 1.05
+    - agent_id: "agent_f"
+      start_location_ref: "plaza_south"
+      budget: 5.9
+      movement_speed: 1.25
+      hunger: 1.15
+      social_susceptibility: 0.58
+      memory_slots: 7
+      policy_ref: "budget_policy"
+      traits:
+        sociability: 0.5
+        price_sensitivity: 0.9
+      preferences:
+        boiled_corn: 1.4
+        spring_roll: 1.18
+        herbal_jelly: 1.08
+    - agent_id: "agent_g"
+      start_location_ref: "plaza_center"
+      budget: 12.0
+      movement_speed: 1.55
+      hunger: 0.85
+      social_susceptibility: 0.66
+      memory_slots: 10
+      policy_ref: "balanced_policy"
+      traits:
+        sociability: 0.7
+        price_sensitivity: 0.35
+      preferences:
+        mango_sticky_rice: 1.28
+        coconut_icecream: 1.32
+        thai_tea: 1.15
+    - agent_id: "agent_h"
+      start_location_ref: "plaza_north"
+      budget: 8.1
+      movement_speed: 1.38
+      hunger: 1.05
+      social_susceptibility: 0.74
+      memory_slots: 9
+      policy_ref: "social_policy"
+      traits:
+        sociability: 0.84
+        price_sensitivity: 0.46
+      preferences:
+        pork_skewer: 1.33
+        boiled_corn: 1.12
+        chicken_satay: 1.24
+    - agent_id: "agent_i"
+      start_location_ref: "plaza_south"
+      budget: 6.2
+      movement_speed: 1.2
+      hunger: 1.18
+      social_susceptibility: 0.57
+      memory_slots: 7
+      policy_ref: "budget_policy"
+      traits:
+        sociability: 0.42
+        price_sensitivity: 0.88
+      preferences:
+        sticky_rice_pork: 1.26
+        pad_thai_box: 1.04
+        boiled_corn: 1.17
+    - agent_id: "agent_j"
+      start_location_ref: "plaza_center"
+      budget: 9.8
+      movement_speed: 1.48
+      hunger: 0.95
+      social_susceptibility: 0.69
+      memory_slots: 8
+      policy_ref: "social_policy"
+      traits:
+        sociability: 0.76
+        price_sensitivity: 0.49
+      preferences:
+        banana_pancake: 1.3
+        mango_sticky_rice: 1.18
+        pork_skewer: 1.2
+
+  policies:
+    - policy_id: "balanced_policy"
+      movement_policy: "distance_price_balance"
+      observation_policy: "line_of_sight"
+      conversation_policy: "casual_market_chat"
+      purchase_policy: "weighted_rule_v2"
+    - policy_id: "budget_policy"
+      movement_policy: "price_first"
+      observation_policy: "line_of_sight"
+      conversation_policy: "short_chat"
+      purchase_policy: "weighted_rule_v2"
+    - policy_id: "social_policy"
+      movement_policy: "crowd_following"
+      observation_policy: "line_of_sight"
+      conversation_policy: "story_share"
+      purchase_policy: "weighted_rule_v2"
