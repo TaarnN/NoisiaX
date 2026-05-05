@@ -1,4 +1,4 @@
-# NoisiaX v4 Plan: Experiments, Composition, and Reproducible Research Runs
+# NoisiaX v4 Plan: Experiments, Composition, and Reproducible Research Runs 
 
 ## Summary
 v4 will turn the existing v1/v2/v3 runtimes into a repeatable research workflow. It will add scenario composition, parameterized variants, deterministic seed ensembles, experiment-level stochastic overlays, and aggregate comparison reports while preserving the current deterministic runtime contract.
