@@ -1,4 +1,5 @@
 #include "noisiax/noisiax.hpp"
+#include "noisiax/experiment/experiment.hpp"
 
 #include <fstream>
 #include <iomanip>
@@ -15,8 +16,11 @@ void print_usage(const char* program_name) {
     std::cerr << "Usage:\n"
               << "  " << program_name << " validate <scenario.yaml>\n"
               << "  " << program_name << " compile <scenario.yaml>\n"
+              << "  " << program_name << " resolve <scenario.yaml> [--output canonical.yaml]\n"
               << "  " << program_name << " run <scenario.yaml> [--trace none|events|decisions|full]"
-              << " [--output result.json] [--max-time <float>] [--max-events <int>] [--seed <u64>]\n";
+              << " [--output result.json] [--max-time <float>] [--max-events <int>] [--seed <u64>]\n"
+              << "  " << program_name << " experiment <experiment.yaml> --output-dir <dir> [--trace none|events|decisions|full]"
+              << " [--max-time <float>] [--max-events <int>]\n";
 }
 
 std::string escape_json(const std::string& input) {
@@ -506,6 +510,97 @@ int handle_run(int argc, char** argv) {
     }
 }
 
+int handle_resolve(int argc, char** argv) {
+    try {
+        const std::string filepath = argv[2];
+        std::string output_path;
+
+        for (int i = 3; i < argc; ++i) {
+            const std::string arg = argv[i];
+            if (arg == "--output") {
+                if (i + 1 >= argc) {
+                    throw std::runtime_error("--output requires a file path");
+                }
+                output_path = argv[++i];
+                continue;
+            }
+            throw std::runtime_error("Unknown option: " + arg);
+        }
+
+        const auto resolved = noisiax::experiment::resolve_scenario(filepath);
+        if (output_path.empty()) {
+            std::cout << resolved.canonical_yaml;
+            return 0;
+        }
+
+        std::ofstream output_file(output_path);
+        if (!output_file.is_open()) {
+            throw std::runtime_error("Unable to open output path: " + output_path);
+        }
+        output_file << resolved.canonical_yaml;
+        output_file.close();
+        std::cout << "Resolved scenario written to " << output_path << "\n";
+        return 0;
+    } catch (const std::exception& ex) {
+        std::cerr << "Resolve failed: " << ex.what() << "\n";
+        return 1;
+    }
+}
+
+int handle_experiment(int argc, char** argv) {
+    try {
+        const std::string filepath = argv[2];
+        noisiax::experiment::ExperimentOptions options;
+
+        for (int i = 3; i < argc; ++i) {
+            const std::string arg = argv[i];
+            if (arg == "--output-dir") {
+                if (i + 1 >= argc) {
+                    throw std::runtime_error("--output-dir requires a directory path");
+                }
+                options.output_dir = argv[++i];
+                continue;
+            }
+            if (arg == "--trace") {
+                if (i + 1 >= argc) {
+                    throw std::runtime_error("--trace requires a value");
+                }
+                options.run_options.trace_level = parse_trace_level(argv[++i]);
+                continue;
+            }
+            if (arg == "--max-time") {
+                if (i + 1 >= argc) {
+                    throw std::runtime_error("--max-time requires a value");
+                }
+                options.run_options.max_time = std::stod(argv[++i]);
+                continue;
+            }
+            if (arg == "--max-events") {
+                if (i + 1 >= argc) {
+                    throw std::runtime_error("--max-events requires a value");
+                }
+                options.run_options.max_events = static_cast<std::size_t>(std::stoull(argv[++i]));
+                continue;
+            }
+            throw std::runtime_error("Unknown option: " + arg);
+        }
+
+        if (options.output_dir.empty()) {
+            throw std::runtime_error("--output-dir is required");
+        }
+
+        const auto result = noisiax::experiment::run_experiment(filepath, options);
+        std::cout << "Experiment completed\n";
+        std::cout << "experiment_id: " << result.experiment_id << "\n";
+        std::cout << "output_dir: " << result.output_dir << "\n";
+        std::cout << "runs: " << result.runs.size() << "\n";
+        return 0;
+    } catch (const std::exception& ex) {
+        std::cerr << "Experiment failed: " << ex.what() << "\n";
+        return 1;
+    }
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -521,8 +616,14 @@ int main(int argc, char** argv) {
     if (command == "compile") {
         return handle_compile(argv[2]);
     }
+    if (command == "resolve") {
+        return handle_resolve(argc, argv);
+    }
     if (command == "run") {
         return handle_run(argc, argv);
+    }
+    if (command == "experiment") {
+        return handle_experiment(argc, argv);
     }
 
     print_usage(argv[0]);

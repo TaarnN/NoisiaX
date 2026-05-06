@@ -1,4 +1,5 @@
 #include "noisiax/noisiax.hpp"
+#include "noisiax/experiment/experiment.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -102,6 +103,25 @@ bool has_positive_queue_penalty(const noisiax::RunResult& result) {
         }
     }
     return false;
+}
+
+bool has_typed_component_type_id(const noisiax::schema::TypedLayerDefinition& typed_layer,
+                                 const std::string& component_type_id) {
+    return std::any_of(typed_layer.component_types.begin(), typed_layer.component_types.end(),
+                       [&](const noisiax::schema::ComponentTypeDefinition& comp) {
+                           return comp.component_type_id == component_type_id;
+                       });
+}
+
+std::optional<double> parse_double(const std::string& text) {
+    try {
+        std::size_t processed = 0;
+        const double value = std::stod(text, &processed);
+        if (processed != text.size()) return std::nullopt;
+        return value;
+    } catch (...) {
+        return std::nullopt;
+    }
 }
 
 const noisiax::TypedEntityFinalState* find_typed_entity(const noisiax::TypedFinalStateSnapshot& snapshot,
@@ -628,6 +648,8 @@ void test_v3_fixture_validation_and_compilation() {
 void test_v3_particle_motion_runtime() {
     noisiax::RunOptions options;
     options.trace_level = noisiax::TraceLevel::FULL;
+    // Limit the run so the fixture asserts the state after three ticks at t=0,1,2.
+    options.max_time = 2.0;
 
     const auto result = noisiax::run_scenario_detailed(
         scenario_path("v3_particle_motion.yaml").string(),
@@ -779,6 +801,237 @@ void test_v3_relation_bound_violation_fixture() {
                 "v3 relation bound violation should report the relation bound clearly");
 }
 
+void test_v4_composition_resolve_namespaces() {
+    const auto path = scenario_path("v4_composition_base.yaml").string();
+
+    const auto resolved = noisiax::experiment::resolve_scenario(path);
+    expect_true(resolved.scenario.typed_layer.has_value(), "v4 resolve should preserve typed_layer");
+    expect_true(resolved.canonical_yaml.find("imports:") == std::string::npos,
+                "v4 resolve output should not contain imports stanza");
+
+    const auto& typed = *resolved.scenario.typed_layer;
+    expect_true(has_typed_component_type_id(typed, "frag_a__Branch"),
+                "v4 resolve should namespace component ids (frag_a__Branch)");
+    expect_true(has_typed_component_type_id(typed, "frag_b__Counter"),
+                "v4 resolve should namespace component ids (frag_b__Counter)");
+
+    const auto again = noisiax::experiment::resolve_scenario(path);
+    expect_eq(resolved.resolved_hash, again.resolved_hash, "v4 resolve resolved_hash should be stable");
+}
+
+void test_v4_composition_rejects_circular_imports() {
+    bool threw = false;
+    try {
+        (void)noisiax::experiment::resolve_scenario(scenario_path("v4_circular_a.yaml").string());
+    } catch (const std::exception& ex) {
+        threw = true;
+        expect_true(std::string(ex.what()).find("Circular import detected") != std::string::npos,
+                    "v4 resolve should report circular imports");
+    }
+    expect_true(threw, "v4 resolve should throw on circular imports");
+}
+
+void test_v4_composition_rejects_duplicate_ids() {
+    bool threw = false;
+    try {
+        (void)noisiax::experiment::resolve_scenario(scenario_path("v4_duplicate_ids_base.yaml").string());
+    } catch (const std::exception& ex) {
+        threw = true;
+        const std::string msg = ex.what();
+        expect_true(msg.find("Duplicate resolved") != std::string::npos,
+                    "v4 resolve should reject duplicate ids");
+    }
+    expect_true(threw, "v4 resolve should throw on duplicate ids");
+}
+
+void test_v4_experiment_determinism_and_aggregation() {
+    noisiax::experiment::ExperimentDefinition def;
+    def.experiment_id = "test_v4_det";
+    def.base_scenario = scenario_path("v4_rng_value.yaml").string();
+    def.seed_plan.seeds = {1, 2, 3};
+
+    noisiax::experiment::ExperimentMetric metric;
+    metric.metric_id = "sample_value";
+    metric.kind = "typed_field_final";
+    noisiax::experiment::TypedFieldTarget tf;
+    tf.entity_id = "n1";
+    tf.component_type_id = "Sample";
+    tf.field_name = "value";
+    metric.typed_field = tf;
+    def.metrics.push_back(metric);
+
+    noisiax::experiment::ExperimentOptions options_a;
+    options_a.output_dir = "test_output_v4/exp_det_a";
+
+    noisiax::experiment::ExperimentOptions options_b;
+    options_b.output_dir = "test_output_v4/exp_det_b";
+
+    const auto a = noisiax::experiment::run_experiment(def, options_a);
+    const auto b = noisiax::experiment::run_experiment(def, options_b);
+
+    expect_true(a.runs.size() == b.runs.size(), "v4 experiment should produce same number of runs");
+    expect_true(a.aggregates == b.aggregates, "v4 experiment aggregates should be deterministic");
+
+    for (std::size_t i = 0; i < a.runs.size() && i < b.runs.size(); ++i) {
+        expect_eq(a.runs[i].final_fingerprint, b.runs[i].final_fingerprint, "v4 experiment run fingerprint should match");
+        expect_true(a.runs[i].metrics == b.runs[i].metrics, "v4 experiment run metrics should match");
+    }
+}
+
+void test_v4_experiment_seed_change_changes_output() {
+    auto make_def = [&](uint64_t seed) {
+        noisiax::experiment::ExperimentDefinition def;
+        def.experiment_id = "test_v4_seed_change_" + std::to_string(seed);
+        def.base_scenario = scenario_path("v4_rng_value.yaml").string();
+        def.seed_plan.seeds = {seed};
+
+        noisiax::experiment::ExperimentMetric metric;
+        metric.metric_id = "sample_value";
+        metric.kind = "typed_field_final";
+        noisiax::experiment::TypedFieldTarget tf;
+        tf.entity_id = "n1";
+        tf.component_type_id = "Sample";
+        tf.field_name = "value";
+        metric.typed_field = tf;
+        def.metrics.push_back(metric);
+        return def;
+    };
+
+    noisiax::experiment::ExperimentOptions options_a;
+    options_a.output_dir = "test_output_v4/exp_seed_1";
+    const auto a = noisiax::experiment::run_experiment(make_def(1), options_a);
+
+    noisiax::experiment::ExperimentOptions options_b;
+    options_b.output_dir = "test_output_v4/exp_seed_2";
+    const auto b = noisiax::experiment::run_experiment(make_def(2), options_b);
+
+    expect_true(!a.runs.empty() && !b.runs.empty(), "v4 experiment should produce at least one run");
+
+    const auto it_a = a.runs.front().metrics.find("sample_value");
+    const auto it_b = b.runs.front().metrics.find("sample_value");
+    expect_true(it_a != a.runs.front().metrics.end(), "v4 experiment should record sample_value metric");
+    expect_true(it_b != b.runs.front().metrics.end(), "v4 experiment should record sample_value metric");
+    if (it_a == a.runs.front().metrics.end() || it_b == b.runs.front().metrics.end()) {
+        return;
+    }
+
+    const auto v_a = parse_double(it_a->second);
+    const auto v_b = parse_double(it_b->second);
+    expect_true(v_a.has_value() && v_b.has_value(), "v4 experiment metric should be parseable as a double");
+    if (!v_a.has_value() || !v_b.has_value()) {
+        return;
+    }
+    expect_true(v_a.value() != v_b.value(), "v4 experiment metric should change when seed changes");
+}
+
+void test_v4_experiment_failed_run_reporting_and_fail_fast() {
+    noisiax::experiment::ExperimentDefinition def;
+    def.experiment_id = "test_v4_invalid_overlay";
+    def.base_scenario = scenario_path("v4_rng_value.yaml").string();
+    def.seed_plan.seeds = {1, 2};
+    def.fail_fast = false;
+
+    noisiax::experiment::StochasticOverlay overlay;
+    overlay.overlay_id = "bad_value_type";
+    overlay.sampler = noisiax::experiment::SamplerType::CHOICE;
+    noisiax::experiment::TypedFieldTarget tf;
+    tf.entity_id = "n1";
+    tf.component_type_id = "Sample";
+    tf.field_name = "value";
+    overlay.target.typed_field = tf;
+
+    noisiax::experiment::JsonValue::Object params;
+    params.emplace("values", noisiax::experiment::JsonValue::Array{noisiax::experiment::JsonValue("bad")});
+    overlay.params = noisiax::experiment::JsonValue(std::move(params));
+    def.overlays.push_back(std::move(overlay));
+
+    noisiax::experiment::ExperimentOptions options;
+    options.output_dir = "test_output_v4/exp_invalid_overlay_nonfailfast";
+    const auto result = noisiax::experiment::run_experiment(def, options);
+
+    expect_true(result.runs.size() == 2, "v4 experiment should continue after failed runs when fail_fast=false");
+    if (result.runs.size() >= 2) {
+        expect_true(!result.runs[0].success && !result.runs[1].success,
+                    "v4 experiment invalid overlay should cause each run to fail");
+    }
+
+    noisiax::experiment::ExperimentDefinition ff = def;
+    ff.experiment_id = "test_v4_invalid_overlay_failfast";
+    ff.fail_fast = true;
+    noisiax::experiment::ExperimentOptions options_ff;
+    options_ff.output_dir = "test_output_v4/exp_invalid_overlay_failfast";
+
+    bool threw = false;
+    try {
+        (void)noisiax::experiment::run_experiment(ff, options_ff);
+    } catch (...) {
+        threw = true;
+    }
+    expect_true(threw, "v4 experiment should throw when fail_fast=true and a run throws");
+}
+
+void test_v4_experiment_rejects_invalid_override_targets() {
+    {
+        noisiax::experiment::ExperimentDefinition def;
+        def.experiment_id = "test_v4_invalid_override_ptr";
+        def.base_scenario = scenario_path("v4_rng_value.yaml").string();
+        def.seed_plan.seeds = {1};
+
+        noisiax::experiment::ScenarioOverride bad_ptr;
+        bad_ptr.override_id = "bad_ptr";
+        bad_ptr.op = noisiax::experiment::OverrideOp::REPLACE;
+        bad_ptr.target.json_pointer = "/typed_layer/entities/999/components/Sample/value";
+        bad_ptr.value = noisiax::experiment::JsonValue(1.0);
+        def.global_overrides.push_back(bad_ptr);
+
+        noisiax::experiment::ExperimentOptions options;
+        options.output_dir = "test_output_v4/exp_invalid_override_ptr";
+
+        const auto result = noisiax::experiment::run_experiment(def, options);
+        expect_true(result.runs.size() == 1, "v4 experiment should produce one run for invalid override test");
+        if (!result.runs.empty()) {
+            expect_true(!result.runs[0].success, "v4 experiment should fail when JSON pointer override is invalid");
+            expect_true(!result.runs[0].errors.empty(), "v4 experiment should report an error for invalid JSON pointer override");
+            if (!result.runs[0].errors.empty()) {
+                expect_true(result.runs[0].errors[0].find("JSON pointer") != std::string::npos,
+                            "v4 experiment invalid JSON pointer error should mention JSON pointer");
+            }
+        }
+    }
+
+    {
+        noisiax::experiment::ExperimentDefinition def;
+        def.experiment_id = "test_v4_invalid_override_typed_field";
+        def.base_scenario = scenario_path("v4_rng_value.yaml").string();
+        def.seed_plan.seeds = {1};
+
+        noisiax::experiment::ScenarioOverride bad_tf;
+        bad_tf.override_id = "bad_typed_field";
+        bad_tf.op = noisiax::experiment::OverrideOp::REPLACE;
+        noisiax::experiment::TypedFieldTarget tf;
+        tf.entity_id = "missing_entity";
+        tf.component_type_id = "Sample";
+        tf.field_name = "value";
+        bad_tf.target.typed_field = tf;
+        bad_tf.value = noisiax::experiment::JsonValue(1.0);
+        def.global_overrides.push_back(bad_tf);
+
+        noisiax::experiment::ExperimentOptions options;
+        options.output_dir = "test_output_v4/exp_invalid_override_typed_field";
+
+        const auto result = noisiax::experiment::run_experiment(def, options);
+        expect_true(result.runs.size() == 1, "v4 experiment should produce one run for invalid typed_field override test");
+        if (!result.runs.empty()) {
+            expect_true(!result.runs[0].success, "v4 experiment should fail when typed_field override target is invalid");
+            expect_true(!result.runs[0].errors.empty(), "v4 experiment should report an error for invalid typed_field override");
+            if (!result.runs[0].errors.empty()) {
+                expect_true(result.runs[0].errors[0].find("typed_field") != std::string::npos,
+                            "v4 experiment invalid typed_field override error should mention typed_field");
+            }
+        }
+    }
+}
+
 }  // namespace
 
 int main() {
@@ -809,6 +1062,13 @@ int main() {
     test_v3_atom_bonding_fixture();
     test_v3_max_events_limit_fixture();
     test_v3_relation_bound_violation_fixture();
+    test_v4_composition_resolve_namespaces();
+    test_v4_composition_rejects_circular_imports();
+    test_v4_composition_rejects_duplicate_ids();
+    test_v4_experiment_determinism_and_aggregation();
+    test_v4_experiment_seed_change_changes_output();
+    test_v4_experiment_failed_run_reporting_and_fail_fast();
+    test_v4_experiment_rejects_invalid_override_targets();
 
     if (failures == 0) {
         std::cout << "All tests passed\n";

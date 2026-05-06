@@ -1,0 +1,6271 @@
+scenario_id: "v3_small_town_internet_100p_90d"
+schema_version: "1.0.0"
+master_seed: 20260505
+goal_statement: "Simulate internet adoption, infrastructure stress, misinformation, repair, education, and local economic effects across a 100-person small town over 90 days."
+assumptions:
+  - assumption_id: "assume_small_town_scale"
+    category: "simulation_scope"
+    description: "The town has 100 residents grouped into 25 households and 5 wards served by ward-level network hubs."
+    rationale: "This creates enough heterogeneity for chain reactions while remaining inspectable as a deterministic typed-layer fixture."
+    confidence_level: REJECT
+  - assumption_id: "assume_chain_reactions"
+    category: "runtime_behavior"
+    description: "Connectivity, trust, adoption, misinformation, service slowdowns, help tickets, and repairs can reinforce or dampen each other over time."
+    rationale: "The scenario is designed to exercise event chains, relations, event emission, bounded random draws, and final-state snapshots."
+    confidence_level: REJECT
+
+typed_layer:
+  world:
+    duration: 90.0
+    time_unit: "days"
+    max_event_count: 5000
+    tick_interval: 1.0
+
+  component_types:
+    - component_type_id: "PersonProfile"
+      fields:
+        household: INTEGER
+        ward: INTEGER
+        age: INTEGER
+        role: STRING
+        income: FLOAT
+        digital_skill: FLOAT
+    - component_type_id: "AccessState"
+      fields:
+        has_internet: BOOLEAN
+        device_quality: FLOAT
+        router_health: FLOAT
+        plan_speed: FLOAT
+        monthly_cost: FLOAT
+    - component_type_id: "InternetBehavior"
+      fields:
+        usage_hours: FLOAT
+        remote_work_hours: FLOAT
+        learning_hours: FLOAT
+        misinformation_exposure: FLOAT
+        trusted_info: FLOAT
+        social_posts: FLOAT
+    - component_type_id: "Wellbeing"
+      fields:
+        productivity: FLOAT
+        school_progress: FLOAT
+        health_access: FLOAT
+        happiness: FLOAT
+        savings: FLOAT
+    - component_type_id: "Adoption"
+      fields:
+        interest: FLOAT
+        subscribed: BOOLEAN
+        days_online: INTEGER
+        churn_risk: FLOAT
+    - component_type_id: "EventMemory"
+      fields:
+        service_disruption: FLOAT
+        rumor_belief: FLOAT
+        help_requests: INTEGER
+    - component_type_id: "NetworkNode"
+      fields:
+        ward: INTEGER
+        capacity: FLOAT
+        load: FLOAT
+        reliability: FLOAT
+        repair_backlog: FLOAT
+        outage_pressure: FLOAT
+
+  entity_types:
+    - entity_type_id: "resident"
+      components:
+        [
+          "PersonProfile",
+          "AccessState",
+          "InternetBehavior",
+          "Wellbeing",
+          "Adoption",
+          "EventMemory",
+        ]
+    - entity_type_id: "network_hub"
+      components: ["NetworkNode"]
+
+  relation_types:
+    - relation_type_id: "served_by"
+      directed: true
+      max_total: 120
+      payload_fields:
+        distance_km: FLOAT
+        demand_weight: FLOAT
+    - relation_type_id: "friendship"
+      directed: true
+      max_per_entity: 12
+      max_total: 280
+      payload_fields:
+        tie_strength: FLOAT
+        channel: STRING
+    - relation_type_id: "help_ticket"
+      directed: true
+      max_total: 2000
+      payload_fields:
+        severity: FLOAT
+        created_day: FLOAT
+
+  event_types:
+    - event_type_id: "tick"
+      payload_fields:
+        dt: FLOAT
+    - event_type_id: "fiber_cut"
+      payload_fields:
+        ward: INTEGER
+        severity: FLOAT
+    - event_type_id: "repair_drive"
+      payload_fields:
+        ward: INTEGER
+        boost: FLOAT
+    - event_type_id: "training_day"
+      payload_fields:
+        skill_boost: FLOAT
+        trust_boost: FLOAT
+    - event_type_id: "subsidy_offer"
+      payload_fields:
+        income_ceiling: FLOAT
+        cost_discount: FLOAT
+        interest_boost: FLOAT
+    - event_type_id: "school_device_rollout"
+      payload_fields:
+        device_boost: FLOAT
+        trust_boost: FLOAT
+    - event_type_id: "rumor_wave"
+      payload_fields:
+        intensity: FLOAT
+    - event_type_id: "festival_stream"
+      payload_fields:
+        demand_boost: FLOAT
+        post_boost: FLOAT
+    - event_type_id: "service_slowdown"
+      payload_fields:
+        ward: INTEGER
+        severity: FLOAT
+
+  entities:
+    - entity_id: "hub_ward_1"
+      entity_type: "network_hub"
+      components:
+        NetworkNode:
+          ward: 1
+          capacity: 520.0
+          load: 0.0
+          reliability: 0.910
+          repair_backlog: 0.750
+          outage_pressure: 0.055
+    - entity_id: "hub_ward_2"
+      entity_type: "network_hub"
+      components:
+        NetworkNode:
+          ward: 2
+          capacity: 485.0
+          load: 0.0
+          reliability: 0.875
+          repair_backlog: 0.900
+          outage_pressure: 0.070
+    - entity_id: "hub_ward_3"
+      entity_type: "network_hub"
+      components:
+        NetworkNode:
+          ward: 3
+          capacity: 450.0
+          load: 0.0
+          reliability: 0.840
+          repair_backlog: 1.400
+          outage_pressure: 0.085
+    - entity_id: "hub_ward_4"
+      entity_type: "network_hub"
+      components:
+        NetworkNode:
+          ward: 4
+          capacity: 415.0
+          load: 0.0
+          reliability: 0.805
+          repair_backlog: 1.200
+          outage_pressure: 0.100
+    - entity_id: "hub_ward_5"
+      entity_type: "network_hub"
+      components:
+        NetworkNode:
+          ward: 5
+          capacity: 380.0
+          load: 0.0
+          reliability: 0.770
+          repair_backlog: 2.200
+          outage_pressure: 0.115
+    - entity_id: "p001"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 1
+          ward: 1
+          age: 15
+          role: "student"
+          income: 25.0
+          digital_skill: 0.695
+        AccessState:
+          has_internet: false
+          device_quality: 0.829
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.180
+          trusted_info: 0.614
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.474
+          school_progress: 0.575
+          health_access: 0.291
+          happiness: 0.570
+          savings: 63.50
+        Adoption:
+          interest: 0.447
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.109
+          help_requests: 0
+    - entity_id: "p002"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 1
+          ward: 1
+          age: 12
+          role: "student"
+          income: 49.0
+          digital_skill: 0.675
+        AccessState:
+          has_internet: false
+          device_quality: 0.800
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.142
+          trusted_info: 0.604
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.479
+          school_progress: 0.569
+          health_access: 0.288
+          happiness: 0.568
+          savings: 126.10
+        Adoption:
+          interest: 0.444
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.112
+          help_requests: 0
+    - entity_id: "p003"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 1
+          ward: 1
+          age: 78
+          role: "elder"
+          income: 381.0
+          digital_skill: 0.195
+        AccessState:
+          has_internet: false
+          device_quality: 0.574
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.261
+          trusted_info: 0.374
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.511
+          school_progress: 0.000
+          health_access: 0.340
+          happiness: 0.505
+          savings: 465.90
+        Adoption:
+          interest: 0.347
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.189
+          help_requests: 0
+    - entity_id: "p004"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 1
+          ward: 1
+          age: 42
+          role: "vendor"
+          income: 908.0
+          digital_skill: 0.415
+        AccessState:
+          has_internet: true
+          device_quality: 0.648
+          router_health: 0.860
+          plan_speed: 54.0
+          monthly_cost: 34.0
+        InternetBehavior:
+          usage_hours: 1.630
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.198
+          trusted_info: 0.479
+          social_posts: 1.330
+        Wellbeing:
+          productivity: 0.739
+          school_progress: 0.000
+          health_access: 0.246
+          happiness: 0.584
+          savings: 981.20
+        Adoption:
+          interest: 0.887
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.154
+          help_requests: 0
+    - entity_id: "p005"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 2
+          ward: 1
+          age: 31
+          role: "remote_worker"
+          income: 1315.0
+          digital_skill: 0.800
+        AccessState:
+          has_internet: true
+          device_quality: 0.794
+          router_health: 0.930
+          plan_speed: 21.0
+          monthly_cost: 37.0
+        InternetBehavior:
+          usage_hours: 2.400
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.120
+          trusted_info: 0.664
+          social_posts: 2.100
+        Wellbeing:
+          productivity: 0.920
+          school_progress: 0.000
+          health_access: 0.308
+          happiness: 0.634
+          savings: 1388.50
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.092
+          help_requests: 0
+    - entity_id: "p006"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 2
+          ward: 1
+          age: 28
+          role: "teacher"
+          income: 912.0
+          digital_skill: 0.690
+        AccessState:
+          has_internet: true
+          device_quality: 0.727
+          router_health: 0.820
+          plan_speed: 30.0
+          monthly_cost: 40.0
+        InternetBehavior:
+          usage_hours: 2.180
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.201
+          trusted_info: 0.761
+          social_posts: 1.880
+        Wellbeing:
+          productivity: 0.790
+          school_progress: 0.000
+          health_access: 0.290
+          happiness: 0.620
+          savings: 1066.80
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.110
+          help_requests: 0
+    - entity_id: "p007"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 2
+          ward: 1
+          age: 46
+          role: "farmer"
+          income: 619.0
+          digital_skill: 0.290
+        AccessState:
+          has_internet: false
+          device_quality: 0.665
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.201
+          trusted_info: 0.419
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.613
+          school_progress: 0.000
+          health_access: 0.226
+          happiness: 0.518
+          savings: 584.10
+        Adoption:
+          interest: 0.400
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.174
+          help_requests: 0
+    - entity_id: "p008"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 2
+          ward: 1
+          age: 26
+          role: "worker"
+          income: 806.0
+          digital_skill: 0.390
+        AccessState:
+          has_internet: true
+          device_quality: 0.688
+          router_health: 0.780
+          plan_speed: 48.0
+          monthly_cost: 27.0
+        InternetBehavior:
+          usage_hours: 1.580
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.151
+          trusted_info: 0.467
+          social_posts: 1.280
+        Wellbeing:
+          productivity: 0.698
+          school_progress: 0.000
+          health_access: 0.242
+          happiness: 0.581
+          savings: 793.40
+        Adoption:
+          interest: 0.869
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.158
+          help_requests: 0
+    - entity_id: "p009"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 3
+          ward: 1
+          age: 11
+          role: "student"
+          income: 128.0
+          digital_skill: 0.705
+        AccessState:
+          has_internet: false
+          device_quality: 0.803
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.190
+          trusted_info: 0.618
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.513
+          school_progress: 0.577
+          health_access: 0.293
+          happiness: 0.572
+          savings: 224.20
+        Adoption:
+          interest: 0.462
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.107
+          help_requests: 0
+    - entity_id: "p010"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 3
+          ward: 1
+          age: 36
+          role: "vendor"
+          income: 770.0
+          digital_skill: 0.465
+        AccessState:
+          has_internet: false
+          device_quality: 0.680
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.173
+          trusted_info: 0.503
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.699
+          school_progress: 0.000
+          health_access: 0.254
+          happiness: 0.540
+          savings: 843.00
+        Adoption:
+          interest: 0.466
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.146
+          help_requests: 0
+    - entity_id: "p011"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 3
+          ward: 1
+          age: 58
+          role: "farmer"
+          income: 587.0
+          digital_skill: 0.295
+        AccessState:
+          has_internet: false
+          device_quality: 0.587
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.150
+          trusted_info: 0.422
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.603
+          school_progress: 0.000
+          health_access: 0.227
+          happiness: 0.518
+          savings: 719.30
+        Adoption:
+          interest: 0.398
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.173
+          help_requests: 0
+    - entity_id: "p012"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 3
+          ward: 1
+          age: 50
+          role: "worker"
+          income: 774.0
+          digital_skill: 0.395
+        AccessState:
+          has_internet: true
+          device_quality: 0.610
+          router_health: 0.880
+          plan_speed: 42.0
+          monthly_cost: 39.0
+        InternetBehavior:
+          usage_hours: 1.590
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.210
+          trusted_info: 0.470
+          social_posts: 1.290
+        Wellbeing:
+          productivity: 0.688
+          school_progress: 0.000
+          health_access: 0.243
+          happiness: 0.581
+          savings: 928.60
+        Adoption:
+          interest: 0.867
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.157
+          help_requests: 0
+    - entity_id: "p013"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 4
+          ward: 1
+          age: 13
+          role: "student"
+          income: 96.0
+          digital_skill: 0.710
+        AccessState:
+          has_internet: false
+          device_quality: 0.725
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.139
+          trusted_info: 0.621
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.502
+          school_progress: 0.579
+          health_access: 0.294
+          happiness: 0.572
+          savings: 99.40
+        Adoption:
+          interest: 0.459
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.106
+          help_requests: 0
+    - entity_id: "p014"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 4
+          ward: 1
+          age: 17
+          role: "student"
+          income: 133.0
+          digital_skill: 0.690
+        AccessState:
+          has_internet: false
+          device_quality: 0.827
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.211
+          trusted_info: 0.611
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.512
+          school_progress: 0.573
+          health_access: 0.290
+          happiness: 0.570
+          savings: 173.70
+        Adoption:
+          interest: 0.458
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.110
+          help_requests: 0
+    - entity_id: "p015"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 4
+          ward: 1
+          age: 81
+          role: "elder"
+          income: 285.0
+          digital_skill: 0.210
+        AccessState:
+          has_internet: false
+          device_quality: 0.600
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.219
+          trusted_info: 0.381
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.480
+          school_progress: 0.000
+          health_access: 0.340
+          happiness: 0.507
+          savings: 351.50
+        Adoption:
+          interest: 0.340
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.186
+          help_requests: 0
+    - entity_id: "p016"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 4
+          ward: 1
+          age: 30
+          role: "vendor"
+          income: 812.0
+          digital_skill: 0.430
+        AccessState:
+          has_internet: true
+          device_quality: 0.675
+          router_health: 0.800
+          plan_speed: 36.0
+          monthly_cost: 32.0
+        InternetBehavior:
+          usage_hours: 1.660
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.157
+          trusted_info: 0.486
+          social_posts: 1.360
+        Wellbeing:
+          productivity: 0.707
+          school_progress: 0.000
+          health_access: 0.249
+          happiness: 0.586
+          savings: 866.80
+        Adoption:
+          interest: 0.881
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.151
+          help_requests: 0
+    - entity_id: "p017"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 5
+          ward: 1
+          age: 31
+          role: "remote_worker"
+          income: 1399.0
+          digital_skill: 0.730
+        AccessState:
+          has_internet: true
+          device_quality: 0.784
+          router_health: 0.870
+          plan_speed: 45.0
+          monthly_cost: 35.0
+        InternetBehavior:
+          usage_hours: 2.260
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.197
+          trusted_info: 0.630
+          social_posts: 1.960
+        Wellbeing:
+          productivity: 0.920
+          school_progress: 0.000
+          health_access: 0.297
+          happiness: 0.625
+          savings: 1436.10
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.103
+          help_requests: 0
+    - entity_id: "p018"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 5
+          ward: 1
+          age: 28
+          role: "teacher"
+          income: 996.0
+          digital_skill: 0.705
+        AccessState:
+          has_internet: true
+          device_quality: 0.753
+          router_health: 0.760
+          plan_speed: 54.0
+          monthly_cost: 38.0
+        InternetBehavior:
+          usage_hours: 2.210
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.160
+          trusted_info: 0.768
+          social_posts: 1.910
+        Wellbeing:
+          productivity: 0.823
+          school_progress: 0.000
+          health_access: 0.293
+          happiness: 0.622
+          savings: 1114.40
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.107
+          help_requests: 0
+    - entity_id: "p019"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 5
+          ward: 1
+          age: 42
+          role: "farmer"
+          income: 703.0
+          digital_skill: 0.305
+        AccessState:
+          has_internet: false
+          device_quality: 0.561
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.160
+          trusted_info: 0.426
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.646
+          school_progress: 0.000
+          health_access: 0.229
+          happiness: 0.520
+          savings: 891.70
+        Adoption:
+          interest: 0.414
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.171
+          help_requests: 0
+    - entity_id: "p020"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 5
+          ward: 1
+          age: 56
+          role: "worker"
+          income: 710.0
+          digital_skill: 0.405
+        AccessState:
+          has_internet: true
+          device_quality: 0.714
+          router_health: 0.900
+          plan_speed: 30.0
+          monthly_cost: 25.0
+        InternetBehavior:
+          usage_hours: 1.610
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.219
+          trusted_info: 0.474
+          social_posts: 1.310
+        Wellbeing:
+          productivity: 0.666
+          school_progress: 0.000
+          health_access: 0.245
+          happiness: 0.583
+          savings: 679.00
+        Adoption:
+          interest: 0.862
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.155
+          help_requests: 0
+    - entity_id: "p021"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 6
+          ward: 2
+          age: 16
+          role: "student"
+          income: 32.0
+          digital_skill: 0.660
+        AccessState:
+          has_internet: false
+          device_quality: 0.804
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.154
+          trusted_info: 0.597
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.470
+          school_progress: 0.565
+          health_access: 0.286
+          happiness: 0.566
+          savings: 109.80
+        Adoption:
+          interest: 0.438
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.114
+          help_requests: 0
+    - entity_id: "p022"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 6
+          ward: 2
+          age: 24
+          role: "vendor"
+          income: 854.0
+          digital_skill: 0.505
+        AccessState:
+          has_internet: false
+          device_quality: 0.717
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.130
+          trusted_info: 0.522
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.736
+          school_progress: 0.000
+          health_access: 0.261
+          happiness: 0.546
+          savings: 890.60
+        Adoption:
+          interest: 0.486
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.139
+          help_requests: 0
+    - entity_id: "p023"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 6
+          ward: 2
+          age: 54
+          role: "farmer"
+          income: 671.0
+          digital_skill: 0.335
+        AccessState:
+          has_internet: false
+          device_quality: 0.624
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.216
+          trusted_info: 0.441
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.640
+          school_progress: 0.000
+          health_access: 0.234
+          happiness: 0.524
+          savings: 766.90
+        Adoption:
+          interest: 0.418
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.166
+          help_requests: 0
+    - entity_id: "p024"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 6
+          ward: 2
+          age: 38
+          role: "worker"
+          income: 858.0
+          digital_skill: 0.435
+        AccessState:
+          has_internet: true
+          device_quality: 0.647
+          router_health: 0.820
+          plan_speed: 24.0
+          monthly_cost: 37.0
+        InternetBehavior:
+          usage_hours: 1.670
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.167
+          trusted_info: 0.489
+          social_posts: 1.370
+        Wellbeing:
+          productivity: 0.725
+          school_progress: 0.000
+          health_access: 0.250
+          happiness: 0.587
+          savings: 976.20
+        Adoption:
+          interest: 0.887
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.150
+          help_requests: 0
+    - entity_id: "p025"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 7
+          ward: 2
+          age: 13
+          role: "student"
+          income: 25.0
+          digital_skill: 0.665
+        AccessState:
+          has_internet: true
+          device_quality: 0.726
+          router_health: 0.890
+          plan_speed: 33.0
+          monthly_cost: 40.0
+        InternetBehavior:
+          usage_hours: 2.130
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.213
+          trusted_info: 0.599
+          social_posts: 1.830
+        Wellbeing:
+          productivity: 0.469
+          school_progress: 0.566
+          health_access: 0.286
+          happiness: 0.616
+          savings: 267.50
+        Adoption:
+          interest: 0.859
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.114
+          help_requests: 0
+    - entity_id: "p026"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 7
+          ward: 2
+          age: 12
+          role: "student"
+          income: 37.0
+          digital_skill: 0.730
+        AccessState:
+          has_internet: false
+          device_quality: 0.734
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.167
+          trusted_info: 0.630
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.485
+          school_progress: 0.584
+          health_access: 0.297
+          happiness: 0.575
+          savings: 59.30
+        Adoption:
+          interest: 0.459
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.103
+          help_requests: 0
+    - entity_id: "p027"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 7
+          ward: 2
+          age: 65
+          role: "elder"
+          income: 369.0
+          digital_skill: 0.250
+        AccessState:
+          has_internet: false
+          device_quality: 0.637
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.175
+          trusted_info: 0.400
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.517
+          school_progress: 0.000
+          health_access: 0.340
+          happiness: 0.512
+          savings: 399.10
+        Adoption:
+          interest: 0.361
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.180
+          help_requests: 0
+    - entity_id: "p028"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 7
+          ward: 2
+          age: 54
+          role: "vendor"
+          income: 896.0
+          digital_skill: 0.470
+        AccessState:
+          has_internet: true
+          device_quality: 0.712
+          router_health: 0.920
+          plan_speed: 18.0
+          monthly_cost: 30.0
+        InternetBehavior:
+          usage_hours: 1.740
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.223
+          trusted_info: 0.506
+          social_posts: 1.440
+        Wellbeing:
+          productivity: 0.745
+          school_progress: 0.000
+          health_access: 0.255
+          happiness: 0.591
+          savings: 914.40
+        Adoption:
+          interest: 0.901
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.145
+          help_requests: 0
+    - entity_id: "p029"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 8
+          ward: 2
+          age: 31
+          role: "remote_worker"
+          income: 1483.0
+          digital_skill: 0.770
+        AccessState:
+          has_internet: true
+          device_quality: 0.821
+          router_health: 0.810
+          plan_speed: 27.0
+          monthly_cost: 33.0
+        InternetBehavior:
+          usage_hours: 2.340
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.153
+          trusted_info: 0.650
+          social_posts: 2.040
+        Wellbeing:
+          productivity: 0.920
+          school_progress: 0.000
+          health_access: 0.303
+          happiness: 0.630
+          savings: 1483.70
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.097
+          help_requests: 0
+    - entity_id: "p030"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 8
+          ward: 2
+          age: 28
+          role: "teacher"
+          income: 900.0
+          digital_skill: 0.745
+        AccessState:
+          has_internet: true
+          device_quality: 0.790
+          router_health: 0.880
+          plan_speed: 36.0
+          monthly_cost: 36.0
+        InternetBehavior:
+          usage_hours: 2.290
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.115
+          trusted_info: 0.788
+          social_posts: 1.990
+        Wellbeing:
+          productivity: 0.796
+          school_progress: 0.000
+          health_access: 0.299
+          happiness: 0.627
+          savings: 1000.00
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.101
+          help_requests: 0
+    - entity_id: "p031"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 8
+          ward: 2
+          age: 38
+          role: "farmer"
+          income: 607.0
+          digital_skill: 0.345
+        AccessState:
+          has_internet: false
+          device_quality: 0.598
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.225
+          trusted_info: 0.446
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.619
+          school_progress: 0.000
+          health_access: 0.235
+          happiness: 0.525
+          savings: 777.30
+        Adoption:
+          interest: 0.414
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.165
+          help_requests: 0
+    - entity_id: "p032"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 8
+          ward: 2
+          age: 44
+          role: "worker"
+          income: 794.0
+          digital_skill: 0.445
+        AccessState:
+          has_internet: true
+          device_quality: 0.621
+          router_health: 0.840
+          plan_speed: 54.0
+          monthly_cost: 23.0
+        InternetBehavior:
+          usage_hours: 1.690
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.176
+          trusted_info: 0.494
+          social_posts: 1.390
+        Wellbeing:
+          productivity: 0.704
+          school_progress: 0.000
+          health_access: 0.251
+          happiness: 0.588
+          savings: 726.60
+        Adoption:
+          interest: 0.883
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.149
+          help_requests: 0
+    - entity_id: "p033"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 9
+          ward: 2
+          age: 11
+          role: "student"
+          income: 116.0
+          digital_skill: 0.675
+        AccessState:
+          has_internet: false
+          device_quality: 0.830
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.112
+          trusted_info: 0.604
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.503
+          school_progress: 0.569
+          health_access: 0.288
+          happiness: 0.568
+          savings: 157.40
+        Adoption:
+          interest: 0.452
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.112
+          help_requests: 0
+    - entity_id: "p034"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 9
+          ward: 2
+          age: 48
+          role: "vendor"
+          income: 938.0
+          digital_skill: 0.435
+        AccessState:
+          has_internet: false
+          device_quality: 0.707
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.206
+          trusted_info: 0.489
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.753
+          school_progress: 0.000
+          health_access: 0.250
+          happiness: 0.537
+          savings: 938.20
+        Adoption:
+          interest: 0.476
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.150
+          help_requests: 0
+    - entity_id: "p035"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 9
+          ward: 2
+          age: 50
+          role: "farmer"
+          income: 575.0
+          digital_skill: 0.350
+        AccessState:
+          has_internet: false
+          device_quality: 0.650
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.175
+          trusted_info: 0.448
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.608
+          school_progress: 0.000
+          health_access: 0.236
+          happiness: 0.525
+          savings: 652.50
+        Adoption:
+          interest: 0.412
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.164
+          help_requests: 0
+    - entity_id: "p036"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 9
+          ward: 2
+          age: 26
+          role: "worker"
+          income: 762.0
+          digital_skill: 0.450
+        AccessState:
+          has_internet: true
+          device_quality: 0.673
+          router_health: 0.760
+          plan_speed: 48.0
+          monthly_cost: 35.0
+        InternetBehavior:
+          usage_hours: 1.700
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.235
+          trusted_info: 0.496
+          social_posts: 1.400
+        Wellbeing:
+          productivity: 0.693
+          school_progress: 0.000
+          health_access: 0.252
+          happiness: 0.589
+          savings: 861.80
+        Adoption:
+          interest: 0.881
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.148
+          help_requests: 0
+    - entity_id: "p037"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 10
+          ward: 2
+          age: 15
+          role: "student"
+          income: 84.0
+          digital_skill: 0.680
+        AccessState:
+          has_internet: false
+          device_quality: 0.752
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.172
+          trusted_info: 0.606
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.492
+          school_progress: 0.570
+          health_access: 0.289
+          happiness: 0.568
+          savings: 292.60
+        Adoption:
+          interest: 0.450
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.111
+          help_requests: 0
+    - entity_id: "p038"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 10
+          ward: 2
+          age: 12
+          role: "student"
+          income: 121.0
+          digital_skill: 0.660
+        AccessState:
+          has_internet: false
+          device_quality: 0.724
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.134
+          trusted_info: 0.597
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.502
+          school_progress: 0.565
+          health_access: 0.286
+          happiness: 0.566
+          savings: 366.90
+        Adoption:
+          interest: 0.448
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.114
+          help_requests: 0
+    - entity_id: "p039"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 10
+          ward: 2
+          age: 68
+          role: "elder"
+          income: 273.0
+          digital_skill: 0.265
+        AccessState:
+          has_internet: false
+          device_quality: 0.534
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.243
+          trusted_info: 0.407
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.485
+          school_progress: 0.000
+          health_access: 0.340
+          happiness: 0.514
+          savings: 284.70
+        Adoption:
+          interest: 0.355
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.178
+          help_requests: 0
+    - entity_id: "p040"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 10
+          ward: 2
+          age: 42
+          role: "vendor"
+          income: 800.0
+          digital_skill: 0.485
+        AccessState:
+          has_internet: true
+          device_quality: 0.739
+          router_health: 0.860
+          plan_speed: 42.0
+          monthly_cost: 28.0
+        InternetBehavior:
+          usage_hours: 1.770
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.181
+          trusted_info: 0.513
+          social_posts: 1.470
+        Wellbeing:
+          productivity: 0.713
+          school_progress: 0.000
+          health_access: 0.258
+          happiness: 0.593
+          savings: 800.00
+        Adoption:
+          interest: 0.895
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.142
+          help_requests: 0
+    - entity_id: "p041"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 11
+          ward: 3
+          age: 31
+          role: "remote_worker"
+          income: 1387.0
+          digital_skill: 0.810
+        AccessState:
+          has_internet: true
+          device_quality: 0.858
+          router_health: 0.930
+          plan_speed: 51.0
+          monthly_cost: 31.0
+        InternetBehavior:
+          usage_hours: 2.420
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.109
+          trusted_info: 0.669
+          social_posts: 2.120
+        Wellbeing:
+          productivity: 0.920
+          school_progress: 0.000
+          health_access: 0.310
+          happiness: 0.635
+          savings: 1369.30
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.090
+          help_requests: 0
+    - entity_id: "p042"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 11
+          ward: 3
+          age: 28
+          role: "teacher"
+          income: 984.0
+          digital_skill: 0.700
+        AccessState:
+          has_internet: true
+          device_quality: 0.791
+          router_health: 0.820
+          plan_speed: 18.0
+          monthly_cost: 34.0
+        InternetBehavior:
+          usage_hours: 2.200
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.190
+          trusted_info: 0.766
+          social_posts: 1.900
+        Wellbeing:
+          productivity: 0.817
+          school_progress: 0.000
+          health_access: 0.292
+          happiness: 0.621
+          savings: 1047.60
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.108
+          help_requests: 0
+    - entity_id: "p043"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 11
+          ward: 3
+          age: 34
+          role: "farmer"
+          income: 691.0
+          digital_skill: 0.385
+        AccessState:
+          has_internet: false
+          device_quality: 0.636
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.181
+          trusted_info: 0.465
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.656
+          school_progress: 0.000
+          health_access: 0.242
+          happiness: 0.530
+          savings: 824.90
+        Adoption:
+          interest: 0.435
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.158
+          help_requests: 0
+    - entity_id: "p044"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 11
+          ward: 3
+          age: 32
+          role: "worker"
+          income: 698.0
+          digital_skill: 0.485
+        AccessState:
+          has_internet: false
+          device_quality: 0.659
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.132
+          trusted_info: 0.513
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.677
+          school_progress: 0.000
+          health_access: 0.258
+          happiness: 0.543
+          savings: 872.20
+        Adoption:
+          interest: 0.463
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.142
+          help_requests: 0
+    - entity_id: "p045"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 12
+          ward: 3
+          age: 11
+          role: "student"
+          income: 25.0
+          digital_skill: 0.715
+        AccessState:
+          has_internet: true
+          device_quality: 0.737
+          router_health: 0.850
+          plan_speed: 45.0
+          monthly_cost: 24.0
+        InternetBehavior:
+          usage_hours: 2.230
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.178
+          trusted_info: 0.623
+          social_posts: 1.930
+        Wellbeing:
+          productivity: 0.478
+          school_progress: 0.580
+          health_access: 0.294
+          happiness: 0.623
+          savings: 47.50
+        Adoption:
+          interest: 0.873
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.106
+          help_requests: 0
+    - entity_id: "p046"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 12
+          ward: 3
+          age: 36
+          role: "vendor"
+          income: 842.0
+          digital_skill: 0.475
+        AccessState:
+          has_internet: false
+          device_quality: 0.744
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.162
+          trusted_info: 0.508
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.726
+          school_progress: 0.000
+          health_access: 0.256
+          happiness: 0.542
+          savings: 823.80
+        Adoption:
+          interest: 0.477
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.144
+          help_requests: 0
+    - entity_id: "p047"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 12
+          ward: 3
+          age: 46
+          role: "farmer"
+          income: 659.0
+          digital_skill: 0.390
+        AccessState:
+          has_internet: false
+          device_quality: 0.688
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.241
+          trusted_info: 0.467
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.646
+          school_progress: 0.000
+          health_access: 0.242
+          happiness: 0.531
+          savings: 700.10
+        Adoption:
+          interest: 0.432
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.158
+          help_requests: 0
+    - entity_id: "p048"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 12
+          ward: 3
+          age: 56
+          role: "worker"
+          income: 846.0
+          digital_skill: 0.490
+        AccessState:
+          has_internet: true
+          device_quality: 0.711
+          router_health: 0.880
+          plan_speed: 30.0
+          monthly_cost: 33.0
+        InternetBehavior:
+          usage_hours: 1.780
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.191
+          trusted_info: 0.515
+          social_posts: 1.480
+        Wellbeing:
+          productivity: 0.730
+          school_progress: 0.000
+          health_access: 0.258
+          happiness: 0.594
+          savings: 909.40
+        Adoption:
+          interest: 0.901
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.142
+          help_requests: 0
+    - entity_id: "p049"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 13
+          ward: 3
+          age: 12
+          role: "student"
+          income: 25.0
+          digital_skill: 0.720
+        AccessState:
+          has_internet: false
+          device_quality: 0.790
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.128
+          trusted_info: 0.626
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.479
+          school_progress: 0.582
+          health_access: 0.295
+          happiness: 0.574
+          savings: 211.50
+        Adoption:
+          interest: 0.454
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.105
+          help_requests: 0
+    - entity_id: "p050"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 13
+          ward: 3
+          age: 16
+          role: "student"
+          income: 25.0
+          digital_skill: 0.700
+        AccessState:
+          has_internet: true
+          device_quality: 0.761
+          router_health: 0.840
+          plan_speed: 48.0
+          monthly_cost: 39.0
+        InternetBehavior:
+          usage_hours: 2.200
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.200
+          trusted_info: 0.616
+          social_posts: 1.900
+        Wellbeing:
+          productivity: 0.475
+          school_progress: 0.576
+          health_access: 0.292
+          happiness: 0.621
+          savings: 252.50
+        Adoption:
+          interest: 0.869
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.108
+          help_requests: 0
+    - entity_id: "p051"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 13
+          ward: 3
+          age: 71
+          role: "elder"
+          income: 357.0
+          digital_skill: 0.220
+        AccessState:
+          has_internet: false
+          device_quality: 0.535
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.208
+          trusted_info: 0.386
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.507
+          school_progress: 0.000
+          health_access: 0.340
+          happiness: 0.509
+          savings: 332.30
+        Adoption:
+          interest: 0.351
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.185
+          help_requests: 0
+    - entity_id: "p052"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 13
+          ward: 3
+          age: 30
+          role: "vendor"
+          income: 884.0
+          digital_skill: 0.525
+        AccessState:
+          has_internet: false
+          device_quality: 0.646
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.138
+          trusted_info: 0.532
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.750
+          school_progress: 0.000
+          health_access: 0.264
+          happiness: 0.548
+          savings: 847.60
+        Adoption:
+          interest: 0.495
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.136
+          help_requests: 0
+    - entity_id: "p053"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 14
+          ward: 3
+          age: 31
+          role: "remote_worker"
+          income: 1471.0
+          digital_skill: 0.825
+        AccessState:
+          has_internet: true
+          device_quality: 0.885
+          router_health: 0.870
+          plan_speed: 33.0
+          monthly_cost: 29.0
+        InternetBehavior:
+          usage_hours: 2.450
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.177
+          trusted_info: 0.676
+          social_posts: 2.150
+        Wellbeing:
+          productivity: 0.920
+          school_progress: 0.000
+          health_access: 0.312
+          happiness: 0.637
+          savings: 1416.90
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.088
+          help_requests: 0
+    - entity_id: "p054"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 14
+          ward: 3
+          age: 28
+          role: "teacher"
+          income: 888.0
+          digital_skill: 0.715
+        AccessState:
+          has_internet: true
+          device_quality: 0.817
+          router_health: 0.760
+          plan_speed: 42.0
+          monthly_cost: 32.0
+        InternetBehavior:
+          usage_hours: 2.230
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.148
+          trusted_info: 0.773
+          social_posts: 1.930
+        Wellbeing:
+          productivity: 0.786
+          school_progress: 0.000
+          health_access: 0.294
+          happiness: 0.623
+          savings: 933.20
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.106
+          help_requests: 0
+    - entity_id: "p055"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 14
+          ward: 3
+          age: 30
+          role: "farmer"
+          income: 595.0
+          digital_skill: 0.315
+        AccessState:
+          has_internet: false
+          device_quality: 0.625
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.148
+          trusted_info: 0.431
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.609
+          school_progress: 0.000
+          health_access: 0.230
+          happiness: 0.521
+          savings: 710.50
+        Adoption:
+          interest: 0.404
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.170
+          help_requests: 0
+    - entity_id: "p056"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 14
+          ward: 3
+          age: 20
+          role: "worker"
+          income: 782.0
+          digital_skill: 0.500
+        AccessState:
+          has_internet: false
+          device_quality: 0.685
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.200
+          trusted_info: 0.520
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.709
+          school_progress: 0.000
+          health_access: 0.260
+          happiness: 0.545
+          savings: 919.80
+        Adoption:
+          interest: 0.477
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.140
+          help_requests: 0
+    - entity_id: "p057"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 15
+          ward: 3
+          age: 15
+          role: "student"
+          income: 104.0
+          digital_skill: 0.730
+        AccessState:
+          has_internet: false
+          device_quality: 0.764
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.137
+          trusted_info: 0.630
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.509
+          school_progress: 0.584
+          health_access: 0.297
+          happiness: 0.575
+          savings: 350.60
+        Adoption:
+          interest: 0.466
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.103
+          help_requests: 0
+    - entity_id: "p058"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 15
+          ward: 3
+          age: 24
+          role: "vendor"
+          income: 926.0
+          digital_skill: 0.490
+        AccessState:
+          has_internet: false
+          device_quality: 0.641
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.231
+          trusted_info: 0.515
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.759
+          school_progress: 0.000
+          health_access: 0.258
+          happiness: 0.544
+          savings: 871.40
+        Adoption:
+          interest: 0.490
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.142
+          help_requests: 0
+    - entity_id: "p059"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 15
+          ward: 3
+          age: 42
+          role: "farmer"
+          income: 563.0
+          digital_skill: 0.320
+        AccessState:
+          has_internet: false
+          device_quality: 0.678
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.208
+          trusted_info: 0.434
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.599
+          school_progress: 0.000
+          health_access: 0.231
+          happiness: 0.522
+          savings: 585.70
+        Adoption:
+          interest: 0.402
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.169
+          help_requests: 0
+    - entity_id: "p060"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 15
+          ward: 3
+          age: 44
+          role: "worker"
+          income: 750.0
+          digital_skill: 0.505
+        AccessState:
+          has_internet: false
+          device_quality: 0.737
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.149
+          trusted_info: 0.522
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.699
+          school_progress: 0.000
+          health_access: 0.261
+          happiness: 0.546
+          savings: 795.00
+        Adoption:
+          interest: 0.475
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.139
+          help_requests: 0
+    - entity_id: "p061"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 16
+          ward: 4
+          age: 15
+          role: "student"
+          income: 72.0
+          digital_skill: 0.760
+        AccessState:
+          has_internet: false
+          device_quality: 0.827
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.194
+          trusted_info: 0.645
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.503
+          school_progress: 0.593
+          health_access: 0.302
+          happiness: 0.579
+          savings: 225.80
+        Adoption:
+          interest: 0.471
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.098
+          help_requests: 0
+    - entity_id: "p062"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 16
+          ward: 4
+          age: 14
+          role: "student"
+          income: 109.0
+          digital_skill: 0.740
+        AccessState:
+          has_internet: false
+          device_quality: 0.798
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.156
+          trusted_info: 0.635
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.512
+          school_progress: 0.587
+          health_access: 0.298
+          happiness: 0.576
+          savings: 300.10
+        Adoption:
+          interest: 0.469
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.102
+          help_requests: 0
+    - entity_id: "p063"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 16
+          ward: 4
+          age: 74
+          role: "elder"
+          income: 441.0
+          digital_skill: 0.260
+        AccessState:
+          has_internet: false
+          device_quality: 0.572
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.164
+          trusted_info: 0.405
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.544
+          school_progress: 0.000
+          health_access: 0.340
+          happiness: 0.514
+          savings: 639.90
+        Adoption:
+          interest: 0.372
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.178
+          help_requests: 0
+    - entity_id: "p064"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 16
+          ward: 4
+          age: 54
+          role: "vendor"
+          income: 788.0
+          digital_skill: 0.565
+        AccessState:
+          has_internet: false
+          device_quality: 0.683
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.203
+          trusted_info: 0.551
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.723
+          school_progress: 0.000
+          health_access: 0.270
+          happiness: 0.553
+          savings: 733.20
+        Adoption:
+          interest: 0.496
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.130
+          help_requests: 0
+    - entity_id: "p065"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 17
+          ward: 4
+          age: 31
+          role: "remote_worker"
+          income: 1375.0
+          digital_skill: 0.865
+        AccessState:
+          has_internet: true
+          device_quality: 0.792
+          router_health: 0.810
+          plan_speed: 57.0
+          monthly_cost: 27.0
+        InternetBehavior:
+          usage_hours: 2.530
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.133
+          trusted_info: 0.695
+          social_posts: 2.230
+        Wellbeing:
+          productivity: 0.920
+          school_progress: 0.000
+          health_access: 0.318
+          happiness: 0.642
+          savings: 1302.50
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.082
+          help_requests: 0
+    - entity_id: "p066"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 17
+          ward: 4
+          age: 28
+          role: "teacher"
+          income: 972.0
+          digital_skill: 0.755
+        AccessState:
+          has_internet: true
+          device_quality: 0.855
+          router_health: 0.880
+          plan_speed: 24.0
+          monthly_cost: 30.0
+        InternetBehavior:
+          usage_hours: 2.310
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.104
+          trusted_info: 0.792
+          social_posts: 2.010
+        Wellbeing:
+          productivity: 0.823
+          school_progress: 0.000
+          health_access: 0.301
+          happiness: 0.628
+          savings: 980.80
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.099
+          help_requests: 0
+    - entity_id: "p067"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 17
+          ward: 4
+          age: 26
+          role: "farmer"
+          income: 679.0
+          digital_skill: 0.355
+        AccessState:
+          has_internet: false
+          device_quality: 0.663
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.214
+          trusted_info: 0.450
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.646
+          school_progress: 0.000
+          health_access: 0.237
+          happiness: 0.526
+          savings: 758.10
+        Adoption:
+          interest: 0.425
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.163
+          help_requests: 0
+    - entity_id: "p068"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 17
+          ward: 4
+          age: 50
+          role: "worker"
+          income: 866.0
+          digital_skill: 0.455
+        AccessState:
+          has_internet: false
+          device_quality: 0.686
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.164
+          trusted_info: 0.498
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.731
+          school_progress: 0.000
+          health_access: 0.253
+          happiness: 0.539
+          savings: 967.40
+        Adoption:
+          interest: 0.474
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.147
+          help_requests: 0
+    - entity_id: "p069"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 18
+          ward: 4
+          age: 13
+          role: "student"
+          income: 25.0
+          digital_skill: 0.770
+        AccessState:
+          has_internet: false
+          device_quality: 0.801
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.203
+          trusted_info: 0.650
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.488
+          school_progress: 0.596
+          health_access: 0.303
+          happiness: 0.580
+          savings: 251.50
+        Adoption:
+          interest: 0.468
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.097
+          help_requests: 0
+    - entity_id: "p070"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 18
+          ward: 4
+          age: 48
+          role: "vendor"
+          income: 830.0
+          digital_skill: 0.530
+        AccessState:
+          has_internet: false
+          device_quality: 0.678
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.187
+          trusted_info: 0.534
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.732
+          school_progress: 0.000
+          health_access: 0.265
+          happiness: 0.549
+          savings: 757.00
+        Adoption:
+          interest: 0.491
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.135
+          help_requests: 0
+    - entity_id: "p071"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 18
+          ward: 4
+          age: 38
+          role: "farmer"
+          income: 647.0
+          digital_skill: 0.360
+        AccessState:
+          has_internet: false
+          device_quality: 0.585
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.164
+          trusted_info: 0.453
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.636
+          school_progress: 0.000
+          health_access: 0.238
+          happiness: 0.527
+          savings: 633.30
+        Adoption:
+          interest: 0.423
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.162
+          help_requests: 0
+    - entity_id: "p072"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 18
+          ward: 4
+          age: 32
+          role: "worker"
+          income: 834.0
+          digital_skill: 0.460
+        AccessState:
+          has_internet: true
+          device_quality: 0.738
+          router_health: 0.760
+          plan_speed: 36.0
+          monthly_cost: 29.0
+        InternetBehavior:
+          usage_hours: 1.720
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.224
+          trusted_info: 0.501
+          social_posts: 1.420
+        Wellbeing:
+          productivity: 0.721
+          school_progress: 0.000
+          health_access: 0.254
+          happiness: 0.590
+          savings: 842.60
+        Adoption:
+          interest: 0.891
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.146
+          help_requests: 0
+    - entity_id: "p073"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 19
+          ward: 4
+          age: 15
+          role: "student"
+          income: 25.0
+          digital_skill: 0.775
+        AccessState:
+          has_internet: false
+          device_quality: 0.853
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.152
+          trusted_info: 0.652
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.488
+          school_progress: 0.597
+          health_access: 0.304
+          happiness: 0.581
+          savings: 155.50
+        Adoption:
+          interest: 0.470
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.096
+          help_requests: 0
+    - entity_id: "p074"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 19
+          ward: 4
+          age: 14
+          role: "student"
+          income: 25.0
+          digital_skill: 0.755
+        AccessState:
+          has_internet: false
+          device_quality: 0.825
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.114
+          trusted_info: 0.642
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.485
+          school_progress: 0.591
+          health_access: 0.301
+          happiness: 0.578
+          savings: 196.50
+        Adoption:
+          interest: 0.464
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.099
+          help_requests: 0
+    - entity_id: "p075"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 19
+          ward: 4
+          age: 77
+          role: "elder"
+          income: 345.0
+          digital_skill: 0.275
+        AccessState:
+          has_internet: false
+          device_quality: 0.598
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.232
+          trusted_info: 0.412
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.513
+          school_progress: 0.000
+          health_access: 0.340
+          happiness: 0.516
+          savings: 525.50
+        Adoption:
+          interest: 0.365
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.176
+          help_requests: 0
+    - entity_id: "p076"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 19
+          ward: 4
+          age: 42
+          role: "vendor"
+          income: 872.0
+          digital_skill: 0.495
+        AccessState:
+          has_internet: false
+          device_quality: 0.673
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.170
+          trusted_info: 0.518
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.741
+          school_progress: 0.000
+          health_access: 0.259
+          happiness: 0.544
+          savings: 1040.80
+        Adoption:
+          interest: 0.485
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.141
+          help_requests: 0
+    - entity_id: "p077"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 20
+          ward: 4
+          age: 31
+          role: "remote_worker"
+          income: 1459.0
+          digital_skill: 0.880
+        AccessState:
+          has_internet: true
+          device_quality: 0.818
+          router_health: 0.930
+          plan_speed: 39.0
+          monthly_cost: 25.0
+        InternetBehavior:
+          usage_hours: 2.560
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.092
+          trusted_info: 0.702
+          social_posts: 2.260
+        Wellbeing:
+          productivity: 0.920
+          school_progress: 0.000
+          health_access: 0.321
+          happiness: 0.644
+          savings: 1350.10
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.079
+          help_requests: 0
+    - entity_id: "p078"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 20
+          ward: 4
+          age: 28
+          role: "teacher"
+          income: 876.0
+          digital_skill: 0.770
+        AccessState:
+          has_internet: true
+          device_quality: 0.751
+          router_health: 0.820
+          plan_speed: 48.0
+          monthly_cost: 28.0
+        InternetBehavior:
+          usage_hours: 2.340
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.173
+          trusted_info: 0.800
+          social_posts: 2.040
+        Wellbeing:
+          productivity: 0.791
+          school_progress: 0.000
+          health_access: 0.303
+          happiness: 0.630
+          savings: 866.40
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.097
+          help_requests: 0
+    - entity_id: "p079"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 20
+          ward: 4
+          age: 62
+          role: "farmer"
+          income: 583.0
+          digital_skill: 0.370
+        AccessState:
+          has_internet: false
+          device_quality: 0.689
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.173
+          trusted_info: 0.458
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.615
+          school_progress: 0.000
+          health_access: 0.239
+          happiness: 0.528
+          savings: 643.70
+        Adoption:
+          interest: 0.418
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.161
+          help_requests: 0
+    - entity_id: "p080"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 20
+          ward: 4
+          age: 38
+          role: "worker"
+          income: 770.0
+          digital_skill: 0.470
+        AccessState:
+          has_internet: false
+          device_quality: 0.712
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.233
+          trusted_info: 0.506
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.700
+          school_progress: 0.000
+          health_access: 0.255
+          happiness: 0.541
+          savings: 853.00
+        Adoption:
+          interest: 0.467
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.145
+          help_requests: 0
+    - entity_id: "p081"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 21
+          ward: 5
+          age: 13
+          role: "student"
+          income: 92.0
+          digital_skill: 0.810
+        AccessState:
+          has_internet: false
+          device_quality: 0.838
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.159
+          trusted_info: 0.669
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.519
+          school_progress: 0.607
+          health_access: 0.310
+          happiness: 0.585
+          savings: 283.80
+        Adoption:
+          interest: 0.487
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.090
+          help_requests: 0
+    - entity_id: "p082"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 21
+          ward: 5
+          age: 36
+          role: "vendor"
+          income: 914.0
+          digital_skill: 0.570
+        AccessState:
+          has_internet: false
+          device_quality: 0.715
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.143
+          trusted_info: 0.554
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.769
+          school_progress: 0.000
+          health_access: 0.271
+          happiness: 0.554
+          savings: 1064.60
+        Adoption:
+          interest: 0.511
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.129
+          help_requests: 0
+    - entity_id: "p083"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 21
+          ward: 5
+          age: 34
+          role: "farmer"
+          income: 551.0
+          digital_skill: 0.400
+        AccessState:
+          has_internet: false
+          device_quality: 0.622
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.230
+          trusted_info: 0.472
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.609
+          school_progress: 0.000
+          health_access: 0.244
+          happiness: 0.532
+          savings: 518.90
+        Adoption:
+          interest: 0.423
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.156
+          help_requests: 0
+    - entity_id: "p084"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 21
+          ward: 5
+          age: 20
+          role: "worker"
+          income: 738.0
+          digital_skill: 0.500
+        AccessState:
+          has_internet: false
+          device_quality: 0.645
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.180
+          trusted_info: 0.520
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.694
+          school_progress: 0.000
+          health_access: 0.260
+          happiness: 0.545
+          savings: 728.20
+        Adoption:
+          interest: 0.472
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.140
+          help_requests: 0
+    - entity_id: "p085"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 22
+          ward: 5
+          age: 11
+          role: "student"
+          income: 60.0
+          digital_skill: 0.730
+        AccessState:
+          has_internet: true
+          device_quality: 0.854
+          router_health: 0.770
+          plan_speed: 27.0
+          monthly_cost: 30.0
+        InternetBehavior:
+          usage_hours: 2.260
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.117
+          trusted_info: 0.630
+          social_posts: 1.960
+        Wellbeing:
+          productivity: 0.493
+          school_progress: 0.584
+          health_access: 0.297
+          happiness: 0.625
+          savings: 159.00
+        Adoption:
+          interest: 0.881
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.103
+          help_requests: 0
+    - entity_id: "p086"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 22
+          ward: 5
+          age: 16
+          role: "student"
+          income: 97.0
+          digital_skill: 0.795
+        AccessState:
+          has_internet: false
+          device_quality: 0.862
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.180
+          trusted_info: 0.662
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.518
+          school_progress: 0.603
+          health_access: 0.307
+          happiness: 0.583
+          savings: 233.30
+        Adoption:
+          interest: 0.483
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.093
+          help_requests: 0
+    - entity_id: "p087"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 22
+          ward: 5
+          age: 80
+          role: "elder"
+          income: 429.0
+          digital_skill: 0.315
+        AccessState:
+          has_internet: false
+          device_quality: 0.635
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.189
+          trusted_info: 0.431
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.550
+          school_progress: 0.000
+          health_access: 0.340
+          happiness: 0.521
+          savings: 573.10
+        Adoption:
+          interest: 0.386
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.170
+          help_requests: 0
+    - entity_id: "p088"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 22
+          ward: 5
+          age: 30
+          role: "vendor"
+          income: 776.0
+          digital_skill: 0.535
+        AccessState:
+          has_internet: false
+          device_quality: 0.710
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.127
+          trusted_info: 0.537
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.713
+          school_progress: 0.000
+          health_access: 0.266
+          happiness: 0.550
+          savings: 926.40
+        Adoption:
+          interest: 0.486
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.134
+          help_requests: 0
+    - entity_id: "p089"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 23
+          ward: 5
+          age: 31
+          role: "remote_worker"
+          income: 1363.0
+          digital_skill: 0.835
+        AccessState:
+          has_internet: true
+          device_quality: 0.819
+          router_health: 0.870
+          plan_speed: 21.0
+          monthly_cost: 23.0
+        InternetBehavior:
+          usage_hours: 2.470
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.166
+          trusted_info: 0.681
+          social_posts: 2.170
+        Wellbeing:
+          productivity: 0.920
+          school_progress: 0.000
+          health_access: 0.314
+          happiness: 0.639
+          savings: 1235.70
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.086
+          help_requests: 0
+    - entity_id: "p090"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 23
+          ward: 5
+          age: 28
+          role: "teacher"
+          income: 960.0
+          digital_skill: 0.810
+        AccessState:
+          has_internet: true
+          device_quality: 0.788
+          router_health: 0.760
+          plan_speed: 30.0
+          monthly_cost: 26.0
+        InternetBehavior:
+          usage_hours: 2.420
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.129
+          trusted_info: 0.819
+          social_posts: 2.120
+        Wellbeing:
+          productivity: 0.829
+          school_progress: 0.000
+          health_access: 0.310
+          happiness: 0.635
+          savings: 914.00
+        Adoption:
+          interest: 0.920
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.090
+          help_requests: 0
+    - entity_id: "p091"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 23
+          ward: 5
+          age: 58
+          role: "farmer"
+          income: 667.0
+          digital_skill: 0.410
+        AccessState:
+          has_internet: false
+          device_quality: 0.596
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.239
+          trusted_info: 0.477
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.652
+          school_progress: 0.000
+          health_access: 0.246
+          happiness: 0.533
+          savings: 691.30
+        Adoption:
+          interest: 0.439
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.154
+          help_requests: 0
+    - entity_id: "p092"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 23
+          ward: 5
+          age: 26
+          role: "worker"
+          income: 854.0
+          digital_skill: 0.510
+        AccessState:
+          has_internet: false
+          device_quality: 0.749
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.189
+          trusted_info: 0.525
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.737
+          school_progress: 0.000
+          health_access: 0.262
+          happiness: 0.546
+          savings: 900.60
+        Adoption:
+          interest: 0.488
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.138
+          help_requests: 0
+    - entity_id: "p093"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 24
+          ward: 5
+          age: 15
+          role: "student"
+          income: 25.0
+          digital_skill: 0.740
+        AccessState:
+          has_internet: false
+          device_quality: 0.828
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.126
+          trusted_info: 0.635
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.482
+          school_progress: 0.587
+          health_access: 0.298
+          happiness: 0.576
+          savings: 195.50
+        Adoption:
+          interest: 0.460
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.102
+          help_requests: 0
+    - entity_id: "p094"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 24
+          ward: 5
+          age: 24
+          role: "vendor"
+          income: 818.0
+          digital_skill: 0.585
+        AccessState:
+          has_internet: false
+          device_quality: 0.742
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.211
+          trusted_info: 0.561
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.737
+          school_progress: 0.000
+          health_access: 0.274
+          happiness: 0.556
+          savings: 950.20
+        Adoption:
+          interest: 0.505
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.126
+          help_requests: 0
+    - entity_id: "p095"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 24
+          ward: 5
+          age: 30
+          role: "farmer"
+          income: 635.0
+          digital_skill: 0.415
+        AccessState:
+          has_internet: false
+          device_quality: 0.648
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.189
+          trusted_info: 0.479
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.641
+          school_progress: 0.000
+          health_access: 0.246
+          happiness: 0.534
+          savings: 826.50
+        Adoption:
+          interest: 0.437
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.154
+          help_requests: 0
+    - entity_id: "p096"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 24
+          ward: 5
+          age: 50
+          role: "worker"
+          income: 822.0
+          digital_skill: 0.515
+        AccessState:
+          has_internet: true
+          device_quality: 0.671
+          router_health: 0.820
+          plan_speed: 42.0
+          monthly_cost: 25.0
+        InternetBehavior:
+          usage_hours: 1.830
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.139
+          trusted_info: 0.527
+          social_posts: 1.530
+        Wellbeing:
+          productivity: 0.726
+          school_progress: 0.000
+          health_access: 0.262
+          happiness: 0.597
+          savings: 775.80
+        Adoption:
+          interest: 0.906
+          subscribed: true
+          days_online: 1
+          churn_risk: 0.080
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.138
+          help_requests: 0
+    - entity_id: "p097"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 25
+          ward: 5
+          age: 17
+          role: "student"
+          income: 144.0
+          digital_skill: 0.745
+        AccessState:
+          has_internet: false
+          device_quality: 0.750
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.185
+          trusted_info: 0.638
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.526
+          school_progress: 0.589
+          health_access: 0.299
+          happiness: 0.577
+          savings: 206.60
+        Adoption:
+          interest: 0.475
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.101
+          help_requests: 0
+    - entity_id: "p098"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 25
+          ward: 5
+          age: 13
+          role: "student"
+          income: 25.0
+          digital_skill: 0.810
+        AccessState:
+          has_internet: false
+          device_quality: 0.888
+          router_health: 0.580
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.139
+          trusted_info: 0.669
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.495
+          school_progress: 0.607
+          health_access: 0.310
+          happiness: 0.585
+          savings: 140.50
+        Adoption:
+          interest: 0.480
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.090
+          help_requests: 0
+    - entity_id: "p099"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 25
+          ward: 5
+          age: 64
+          role: "elder"
+          income: 333.0
+          digital_skill: 0.330
+        AccessState:
+          has_internet: false
+          device_quality: 0.662
+          router_health: 0.480
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.147
+          trusted_info: 0.438
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.518
+          school_progress: 0.000
+          health_access: 0.340
+          happiness: 0.523
+          savings: 458.70
+        Adoption:
+          interest: 0.379
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.167
+          help_requests: 0
+    - entity_id: "p100"
+      entity_type: "resident"
+      components:
+        PersonProfile:
+          household: 25
+          ward: 5
+          age: 54
+          role: "vendor"
+          income: 860.0
+          digital_skill: 0.550
+        AccessState:
+          has_internet: false
+          device_quality: 0.736
+          router_health: 0.530
+          plan_speed: 0.0
+          monthly_cost: 0.0
+        InternetBehavior:
+          usage_hours: 0.000
+          remote_work_hours: 0.0
+          learning_hours: 0.0
+          misinformation_exposure: 0.195
+          trusted_info: 0.544
+          social_posts: 0.000
+        Wellbeing:
+          productivity: 0.746
+          school_progress: 0.000
+          health_access: 0.268
+          happiness: 0.551
+          savings: 974.00
+        Adoption:
+          interest: 0.500
+          subscribed: false
+          days_online: 0
+          churn_risk: 0.180
+        EventMemory:
+          service_disruption: 0.0
+          rumor_belief: 0.132
+          help_requests: 0
+
+  relations:
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p001",
+        payload: { distance_km: 2.00, demand_weight: 1.243 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p002",
+        payload: { distance_km: 3.70, demand_weight: 1.234 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p003",
+        payload: { distance_km: 5.40, demand_weight: 0.868 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p004",
+        payload: { distance_km: 1.30, demand_weight: 0.967 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p005",
+        payload: { distance_km: 3.00, demand_weight: 1.490 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p006",
+        payload: { distance_km: 4.70, demand_weight: 1.091 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p007",
+        payload: { distance_km: 0.60, demand_weight: 0.911 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p008",
+        payload: { distance_km: 2.30, demand_weight: 0.956 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p009",
+        payload: { distance_km: 4.00, demand_weight: 1.247 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p010",
+        payload: { distance_km: 5.70, demand_weight: 0.989 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p011",
+        payload: { distance_km: 1.60, demand_weight: 0.913 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p012",
+        payload: { distance_km: 3.30, demand_weight: 0.958 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p013",
+        payload: { distance_km: 5.00, demand_weight: 1.249 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p014",
+        payload: { distance_km: 0.90, demand_weight: 1.240 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p015",
+        payload: { distance_km: 2.60, demand_weight: 0.875 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p016",
+        payload: { distance_km: 4.30, demand_weight: 0.974 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p017",
+        payload: { distance_km: 6.00, demand_weight: 1.458 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p018",
+        payload: { distance_km: 1.90, demand_weight: 1.097 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p019",
+        payload: { distance_km: 3.60, demand_weight: 0.917 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_1",
+        target: "p020",
+        payload: { distance_km: 5.30, demand_weight: 0.962 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p021",
+        payload: { distance_km: 1.20, demand_weight: 1.227 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p022",
+        payload: { distance_km: 2.90, demand_weight: 1.007 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p023",
+        payload: { distance_km: 4.60, demand_weight: 0.931 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p024",
+        payload: { distance_km: 0.50, demand_weight: 0.976 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p025",
+        payload: { distance_km: 2.20, demand_weight: 1.229 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p026",
+        payload: { distance_km: 3.90, demand_weight: 1.258 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p027",
+        payload: { distance_km: 5.60, demand_weight: 0.893 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p028",
+        payload: { distance_km: 1.50, demand_weight: 0.992 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p029",
+        payload: { distance_km: 3.20, demand_weight: 1.477 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p030",
+        payload: { distance_km: 4.90, demand_weight: 1.115 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p031",
+        payload: { distance_km: 0.80, demand_weight: 0.935 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p032",
+        payload: { distance_km: 2.50, demand_weight: 0.980 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p033",
+        payload: { distance_km: 4.20, demand_weight: 1.234 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p034",
+        payload: { distance_km: 5.90, demand_weight: 0.976 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p035",
+        payload: { distance_km: 1.80, demand_weight: 0.938 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p036",
+        payload: { distance_km: 3.50, demand_weight: 0.983 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p037",
+        payload: { distance_km: 5.20, demand_weight: 1.236 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p038",
+        payload: { distance_km: 1.10, demand_weight: 1.227 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p039",
+        payload: { distance_km: 2.80, demand_weight: 0.899 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_2",
+        target: "p040",
+        payload: { distance_km: 4.50, demand_weight: 0.998 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p041",
+        payload: { distance_km: 0.40, demand_weight: 1.494 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p042",
+        payload: { distance_km: 2.10, demand_weight: 1.095 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p043",
+        payload: { distance_km: 3.80, demand_weight: 0.953 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p044",
+        payload: { distance_km: 5.50, demand_weight: 0.998 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p045",
+        payload: { distance_km: 1.40, demand_weight: 1.252 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p046",
+        payload: { distance_km: 3.10, demand_weight: 0.994 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p047",
+        payload: { distance_km: 4.80, demand_weight: 0.956 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p048",
+        payload: { distance_km: 0.70, demand_weight: 1.000 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p049",
+        payload: { distance_km: 2.40, demand_weight: 1.254 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p050",
+        payload: { distance_km: 4.10, demand_weight: 1.245 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p051",
+        payload: { distance_km: 5.80, demand_weight: 0.879 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p052",
+        payload: { distance_km: 1.70, demand_weight: 1.016 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p053",
+        payload: { distance_km: 3.40, demand_weight: 1.501 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p054",
+        payload: { distance_km: 5.10, demand_weight: 1.102 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p055",
+        payload: { distance_km: 1.00, demand_weight: 0.922 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p056",
+        payload: { distance_km: 2.70, demand_weight: 1.005 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p057",
+        payload: { distance_km: 4.40, demand_weight: 1.258 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p058",
+        payload: { distance_km: 0.30, demand_weight: 1.000 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p059",
+        payload: { distance_km: 2.00, demand_weight: 0.924 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_3",
+        target: "p060",
+        payload: { distance_km: 3.70, demand_weight: 1.007 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p061",
+        payload: { distance_km: 5.40, demand_weight: 1.272 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p062",
+        payload: { distance_km: 1.30, demand_weight: 1.263 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p063",
+        payload: { distance_km: 3.00, demand_weight: 0.897 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p064",
+        payload: { distance_km: 4.70, demand_weight: 1.034 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p065",
+        payload: { distance_km: 0.60, demand_weight: 1.519 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p066",
+        payload: { distance_km: 2.30, demand_weight: 1.120 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p067",
+        payload: { distance_km: 4.00, demand_weight: 0.940 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p068",
+        payload: { distance_km: 5.70, demand_weight: 0.985 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p069",
+        payload: { distance_km: 1.60, demand_weight: 1.276 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p070",
+        payload: { distance_km: 3.30, demand_weight: 1.018 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p071",
+        payload: { distance_km: 5.00, demand_weight: 0.942 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p072",
+        payload: { distance_km: 0.90, demand_weight: 0.987 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p073",
+        payload: { distance_km: 2.60, demand_weight: 1.279 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p074",
+        payload: { distance_km: 4.30, demand_weight: 1.270 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p075",
+        payload: { distance_km: 6.00, demand_weight: 0.904 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p076",
+        payload: { distance_km: 1.90, demand_weight: 1.003 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p077",
+        payload: { distance_km: 3.60, demand_weight: 1.526 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p078",
+        payload: { distance_km: 5.30, demand_weight: 1.127 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p079",
+        payload: { distance_km: 1.20, demand_weight: 0.947 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_4",
+        target: "p080",
+        payload: { distance_km: 2.90, demand_weight: 0.992 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p081",
+        payload: { distance_km: 4.60, demand_weight: 1.294 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p082",
+        payload: { distance_km: 0.50, demand_weight: 1.037 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p083",
+        payload: { distance_km: 2.20, demand_weight: 0.960 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p084",
+        payload: { distance_km: 3.90, demand_weight: 1.005 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p085",
+        payload: { distance_km: 5.60, demand_weight: 1.258 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p086",
+        payload: { distance_km: 1.50, demand_weight: 1.288 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p087",
+        payload: { distance_km: 3.20, demand_weight: 0.922 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p088",
+        payload: { distance_km: 4.90, demand_weight: 1.021 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p089",
+        payload: { distance_km: 0.80, demand_weight: 1.506 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p090",
+        payload: { distance_km: 2.50, demand_weight: 1.145 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p091",
+        payload: { distance_km: 4.20, demand_weight: 0.965 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p092",
+        payload: { distance_km: 5.90, demand_weight: 1.010 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p093",
+        payload: { distance_km: 1.80, demand_weight: 1.263 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p094",
+        payload: { distance_km: 3.50, demand_weight: 1.043 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p095",
+        payload: { distance_km: 5.20, demand_weight: 0.967 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p096",
+        payload: { distance_km: 1.10, demand_weight: 1.012 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p097",
+        payload: { distance_km: 2.80, demand_weight: 1.265 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p098",
+        payload: { distance_km: 4.50, demand_weight: 1.294 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p099",
+        payload: { distance_km: 0.40, demand_weight: 0.929 },
+      }
+    - {
+        relation_type: "served_by",
+        source: "hub_ward_5",
+        target: "p100",
+        payload: { distance_km: 2.10, demand_weight: 1.028 },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p001",
+        target: "p002",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p001",
+        target: "p005",
+        payload: { tie_strength: 0.370, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p002",
+        target: "p003",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p002",
+        target: "p006",
+        payload: { tie_strength: 0.440, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p003",
+        target: "p004",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p003",
+        target: "p007",
+        payload: { tie_strength: 0.510, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p004",
+        target: "p005",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p004",
+        target: "p008",
+        payload: { tie_strength: 0.580, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p004",
+        target: "p040",
+        payload: { tie_strength: 0.340, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p005",
+        target: "p006",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p005",
+        target: "p009",
+        payload: { tie_strength: 0.350, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p006",
+        target: "p007",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p006",
+        target: "p010",
+        payload: { tie_strength: 0.420, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p007",
+        target: "p008",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p007",
+        target: "p011",
+        payload: { tie_strength: 0.490, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p008",
+        target: "p009",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p008",
+        target: "p012",
+        payload: { tie_strength: 0.560, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p008",
+        target: "p044",
+        payload: { tie_strength: 0.240, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p009",
+        target: "p010",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p009",
+        target: "p013",
+        payload: { tie_strength: 0.330, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p010",
+        target: "p011",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p010",
+        target: "p014",
+        payload: { tie_strength: 0.400, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p011",
+        target: "p012",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p011",
+        target: "p015",
+        payload: { tie_strength: 0.470, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p012",
+        target: "p013",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p012",
+        target: "p016",
+        payload: { tie_strength: 0.540, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p012",
+        target: "p048",
+        payload: { tie_strength: 0.360, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p013",
+        target: "p014",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p013",
+        target: "p017",
+        payload: { tie_strength: 0.310, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p014",
+        target: "p015",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p014",
+        target: "p018",
+        payload: { tie_strength: 0.380, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p015",
+        target: "p016",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p015",
+        target: "p019",
+        payload: { tie_strength: 0.450, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p016",
+        target: "p017",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p016",
+        target: "p020",
+        payload: { tie_strength: 0.520, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p016",
+        target: "p052",
+        payload: { tie_strength: 0.260, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p017",
+        target: "p018",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p017",
+        target: "p001",
+        payload: { tie_strength: 0.590, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p018",
+        target: "p019",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p018",
+        target: "p002",
+        payload: { tie_strength: 0.360, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p019",
+        target: "p020",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p019",
+        target: "p003",
+        payload: { tie_strength: 0.430, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p020",
+        target: "p001",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p020",
+        target: "p004",
+        payload: { tie_strength: 0.500, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p020",
+        target: "p056",
+        payload: { tie_strength: 0.380, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p021",
+        target: "p022",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p021",
+        target: "p025",
+        payload: { tie_strength: 0.570, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p022",
+        target: "p023",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p022",
+        target: "p026",
+        payload: { tie_strength: 0.340, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p023",
+        target: "p024",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p023",
+        target: "p027",
+        payload: { tie_strength: 0.410, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p024",
+        target: "p025",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p024",
+        target: "p028",
+        payload: { tie_strength: 0.480, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p024",
+        target: "p060",
+        payload: { tie_strength: 0.280, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p025",
+        target: "p026",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p025",
+        target: "p029",
+        payload: { tie_strength: 0.550, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p026",
+        target: "p027",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p026",
+        target: "p030",
+        payload: { tie_strength: 0.320, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p027",
+        target: "p028",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p027",
+        target: "p031",
+        payload: { tie_strength: 0.390, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p028",
+        target: "p029",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p028",
+        target: "p032",
+        payload: { tie_strength: 0.460, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p028",
+        target: "p064",
+        payload: { tie_strength: 0.400, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p029",
+        target: "p030",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p029",
+        target: "p033",
+        payload: { tie_strength: 0.530, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p030",
+        target: "p031",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p030",
+        target: "p034",
+        payload: { tie_strength: 0.300, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p031",
+        target: "p032",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p031",
+        target: "p035",
+        payload: { tie_strength: 0.370, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p032",
+        target: "p033",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p032",
+        target: "p036",
+        payload: { tie_strength: 0.440, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p032",
+        target: "p068",
+        payload: { tie_strength: 0.300, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p033",
+        target: "p034",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p033",
+        target: "p037",
+        payload: { tie_strength: 0.510, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p034",
+        target: "p035",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p034",
+        target: "p038",
+        payload: { tie_strength: 0.580, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p035",
+        target: "p036",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p035",
+        target: "p039",
+        payload: { tie_strength: 0.350, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p036",
+        target: "p037",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p036",
+        target: "p040",
+        payload: { tie_strength: 0.420, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p036",
+        target: "p072",
+        payload: { tie_strength: 0.420, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p037",
+        target: "p038",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p037",
+        target: "p021",
+        payload: { tie_strength: 0.490, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p038",
+        target: "p039",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p038",
+        target: "p022",
+        payload: { tie_strength: 0.560, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p039",
+        target: "p040",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p039",
+        target: "p023",
+        payload: { tie_strength: 0.330, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p040",
+        target: "p021",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p040",
+        target: "p024",
+        payload: { tie_strength: 0.400, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p040",
+        target: "p076",
+        payload: { tie_strength: 0.320, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p041",
+        target: "p042",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p041",
+        target: "p045",
+        payload: { tie_strength: 0.470, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p042",
+        target: "p043",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p042",
+        target: "p046",
+        payload: { tie_strength: 0.540, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p043",
+        target: "p044",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p043",
+        target: "p047",
+        payload: { tie_strength: 0.310, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p044",
+        target: "p045",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p044",
+        target: "p048",
+        payload: { tie_strength: 0.380, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p044",
+        target: "p080",
+        payload: { tie_strength: 0.220, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p045",
+        target: "p046",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p045",
+        target: "p049",
+        payload: { tie_strength: 0.450, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p046",
+        target: "p047",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p046",
+        target: "p050",
+        payload: { tie_strength: 0.520, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p047",
+        target: "p048",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p047",
+        target: "p051",
+        payload: { tie_strength: 0.590, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p048",
+        target: "p049",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p048",
+        target: "p052",
+        payload: { tie_strength: 0.360, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p048",
+        target: "p084",
+        payload: { tie_strength: 0.340, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p049",
+        target: "p050",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p049",
+        target: "p053",
+        payload: { tie_strength: 0.430, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p050",
+        target: "p051",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p050",
+        target: "p054",
+        payload: { tie_strength: 0.500, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p051",
+        target: "p052",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p051",
+        target: "p055",
+        payload: { tie_strength: 0.570, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p052",
+        target: "p053",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p052",
+        target: "p056",
+        payload: { tie_strength: 0.340, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p052",
+        target: "p088",
+        payload: { tie_strength: 0.240, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p053",
+        target: "p054",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p053",
+        target: "p057",
+        payload: { tie_strength: 0.410, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p054",
+        target: "p055",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p054",
+        target: "p058",
+        payload: { tie_strength: 0.480, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p055",
+        target: "p056",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p055",
+        target: "p059",
+        payload: { tie_strength: 0.550, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p056",
+        target: "p057",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p056",
+        target: "p060",
+        payload: { tie_strength: 0.320, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p056",
+        target: "p092",
+        payload: { tie_strength: 0.360, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p057",
+        target: "p058",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p057",
+        target: "p041",
+        payload: { tie_strength: 0.390, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p058",
+        target: "p059",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p058",
+        target: "p042",
+        payload: { tie_strength: 0.460, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p059",
+        target: "p060",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p059",
+        target: "p043",
+        payload: { tie_strength: 0.530, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p060",
+        target: "p041",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p060",
+        target: "p044",
+        payload: { tie_strength: 0.300, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p060",
+        target: "p096",
+        payload: { tie_strength: 0.260, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p061",
+        target: "p062",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p061",
+        target: "p065",
+        payload: { tie_strength: 0.370, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p062",
+        target: "p063",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p062",
+        target: "p066",
+        payload: { tie_strength: 0.440, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p063",
+        target: "p064",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p063",
+        target: "p067",
+        payload: { tie_strength: 0.510, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p064",
+        target: "p065",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p064",
+        target: "p068",
+        payload: { tie_strength: 0.580, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p064",
+        target: "p100",
+        payload: { tie_strength: 0.380, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p065",
+        target: "p066",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p065",
+        target: "p069",
+        payload: { tie_strength: 0.350, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p066",
+        target: "p067",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p066",
+        target: "p070",
+        payload: { tie_strength: 0.420, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p067",
+        target: "p068",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p067",
+        target: "p071",
+        payload: { tie_strength: 0.490, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p068",
+        target: "p069",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p068",
+        target: "p072",
+        payload: { tie_strength: 0.560, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p068",
+        target: "p004",
+        payload: { tie_strength: 0.280, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p069",
+        target: "p070",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p069",
+        target: "p073",
+        payload: { tie_strength: 0.330, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p070",
+        target: "p071",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p070",
+        target: "p074",
+        payload: { tie_strength: 0.400, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p071",
+        target: "p072",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p071",
+        target: "p075",
+        payload: { tie_strength: 0.470, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p072",
+        target: "p073",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p072",
+        target: "p076",
+        payload: { tie_strength: 0.540, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p072",
+        target: "p008",
+        payload: { tie_strength: 0.400, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p073",
+        target: "p074",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p073",
+        target: "p077",
+        payload: { tie_strength: 0.310, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p074",
+        target: "p075",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p074",
+        target: "p078",
+        payload: { tie_strength: 0.380, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p075",
+        target: "p076",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p075",
+        target: "p079",
+        payload: { tie_strength: 0.450, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p076",
+        target: "p077",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p076",
+        target: "p080",
+        payload: { tie_strength: 0.520, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p076",
+        target: "p012",
+        payload: { tie_strength: 0.300, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p077",
+        target: "p078",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p077",
+        target: "p061",
+        payload: { tie_strength: 0.590, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p078",
+        target: "p079",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p078",
+        target: "p062",
+        payload: { tie_strength: 0.360, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p079",
+        target: "p080",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p079",
+        target: "p063",
+        payload: { tie_strength: 0.430, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p080",
+        target: "p061",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p080",
+        target: "p064",
+        payload: { tie_strength: 0.500, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p080",
+        target: "p016",
+        payload: { tie_strength: 0.420, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p081",
+        target: "p082",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p081",
+        target: "p085",
+        payload: { tie_strength: 0.570, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p082",
+        target: "p083",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p082",
+        target: "p086",
+        payload: { tie_strength: 0.340, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p083",
+        target: "p084",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p083",
+        target: "p087",
+        payload: { tie_strength: 0.410, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p084",
+        target: "p085",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p084",
+        target: "p088",
+        payload: { tie_strength: 0.480, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p084",
+        target: "p020",
+        payload: { tie_strength: 0.320, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p085",
+        target: "p086",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p085",
+        target: "p089",
+        payload: { tie_strength: 0.550, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p086",
+        target: "p087",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p086",
+        target: "p090",
+        payload: { tie_strength: 0.320, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p087",
+        target: "p088",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p087",
+        target: "p091",
+        payload: { tie_strength: 0.390, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p088",
+        target: "p089",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p088",
+        target: "p092",
+        payload: { tie_strength: 0.460, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p088",
+        target: "p024",
+        payload: { tie_strength: 0.220, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p089",
+        target: "p090",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p089",
+        target: "p093",
+        payload: { tie_strength: 0.530, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p090",
+        target: "p091",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p090",
+        target: "p094",
+        payload: { tie_strength: 0.300, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p091",
+        target: "p092",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p091",
+        target: "p095",
+        payload: { tie_strength: 0.370, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p092",
+        target: "p093",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p092",
+        target: "p096",
+        payload: { tie_strength: 0.440, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p092",
+        target: "p028",
+        payload: { tie_strength: 0.340, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p093",
+        target: "p094",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p093",
+        target: "p097",
+        payload: { tie_strength: 0.510, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p094",
+        target: "p095",
+        payload: { tie_strength: 0.570, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p094",
+        target: "p098",
+        payload: { tie_strength: 0.580, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p095",
+        target: "p096",
+        payload: { tie_strength: 0.620, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p095",
+        target: "p099",
+        payload: { tie_strength: 0.350, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p096",
+        target: "p097",
+        payload: { tie_strength: 0.670, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p096",
+        target: "p100",
+        payload: { tie_strength: 0.420, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p096",
+        target: "p032",
+        payload: { tie_strength: 0.240, channel: "market" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p097",
+        target: "p098",
+        payload: { tie_strength: 0.720, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p097",
+        target: "p081",
+        payload: { tie_strength: 0.490, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p098",
+        target: "p099",
+        payload: { tie_strength: 0.420, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p098",
+        target: "p082",
+        payload: { tie_strength: 0.560, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p099",
+        target: "p100",
+        payload: { tie_strength: 0.470, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p099",
+        target: "p083",
+        payload: { tie_strength: 0.330, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p100",
+        target: "p081",
+        payload: { tie_strength: 0.520, channel: "chat" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p100",
+        target: "p084",
+        payload: { tie_strength: 0.400, channel: "family" },
+      }
+    - {
+        relation_type: "friendship",
+        source: "p100",
+        target: "p036",
+        payload: { tie_strength: 0.360, channel: "market" },
+      }
+
+  initial_events:
+    - event_type: "subsidy_offer"
+      timestamp: 8.0
+      priority: 10
+      event_handle: "subsidy_day_008"
+      payload:
+        income_ceiling: 760
+        cost_discount: 6
+        interest_boost: 0.120
+    - event_type: "fiber_cut"
+      timestamp: 18.0
+      priority: 20
+      event_handle: "fiber_cut_ward_3_day_018"
+      payload:
+        ward: 3
+        severity: 0.420
+    - event_type: "training_day"
+      timestamp: 24.0
+      priority: 10
+      event_handle: "library_training_day_024"
+      payload:
+        skill_boost: 0.080
+        trust_boost: 0.120
+    - event_type: "school_device_rollout"
+      timestamp: 31.0
+      priority: 10
+      event_handle: "school_devices_day_031"
+      payload:
+        device_boost: 0.220
+        trust_boost: 0.080
+    - event_type: "rumor_wave"
+      timestamp: 39.0
+      priority: 12
+      event_handle: "rumor_wave_day_039"
+      payload:
+        intensity: 0.340
+    - event_type: "subsidy_offer"
+      timestamp: 44.0
+      priority: 10
+      event_handle: "subsidy_day_044"
+      payload:
+        income_ceiling: 900
+        cost_discount: 4
+        interest_boost: 0.080
+    - event_type: "fiber_cut"
+      timestamp: 47.0
+      priority: 20
+      event_handle: "fiber_cut_ward_5_day_047"
+      payload:
+        ward: 5
+        severity: 0.310
+    - event_type: "repair_drive"
+      timestamp: 55.0
+      priority: 15
+      event_handle: "repair_ward_3_day_055"
+      payload:
+        ward: 3
+        boost: 0.330
+    - event_type: "training_day"
+      timestamp: 61.0
+      priority: 10
+      event_handle: "town_hall_training_day_061"
+      payload:
+        skill_boost: 0.060
+        trust_boost: 0.100
+    - event_type: "festival_stream"
+      timestamp: 72.0
+      priority: 11
+      event_handle: "festival_stream_day_072"
+      payload:
+        demand_boost: 2.100
+        post_boost: 2.600
+    - event_type: "rumor_wave"
+      timestamp: 74.0
+      priority: 12
+      event_handle: "rumor_wave_day_074"
+      payload:
+        intensity: 0.220
+    - event_type: "repair_drive"
+      timestamp: 80.0
+      priority: 15
+      event_handle: "repair_ward_5_day_080"
+      payload:
+        ward: 5
+        boost: 0.280
+
+  systems:
+    - system_id: "tick_memory_decay_residents"
+      triggered_by: ["tick"]
+      kind: "per_entity"
+      entity_type: "resident"
+      writes:
+        - target: "EventMemory.rumor_belief"
+          expr: "clamp(EventMemory.rumor_belief * 0.985 - InternetBehavior.trusted_info * 0.003, 0, 1)"
+        - target: "EventMemory.service_disruption"
+          expr: "clamp(EventMemory.service_disruption * 0.93, 0, 90)"
+        - target: "InternetBehavior.misinformation_exposure"
+          expr: 'clamp(InternetBehavior.misinformation_exposure * 0.96 + AccessState.has_internet * rng("ambient_misinfo", 0, 0.010), 0, 1)'
+        - target: "InternetBehavior.trusted_info"
+          expr: "clamp(InternetBehavior.trusted_info * 0.998, 0, 1)"
+        - target: "Adoption.churn_risk"
+          expr: "clamp(Adoption.churn_risk * 0.96 + EventMemory.service_disruption * 0.002 + EventMemory.rumor_belief * 0.003, 0, 1)"
+
+    - system_id: "daily_adoption_residents"
+      triggered_by: ["tick"]
+      kind: "per_entity"
+      entity_type: "resident"
+      writes:
+        - target: "Adoption.interest"
+          expr: 'clamp(Adoption.interest + 0.006 + PersonProfile.digital_skill * 0.004 + InternetBehavior.trusted_info * 0.003 + AccessState.device_quality * 0.002 - EventMemory.rumor_belief * 0.006 - AccessState.monthly_cost * 0.00035 + rng("adoption_daily", 0, 0.012), 0, 1)'
+        - target: "Adoption.subscribed"
+          expr: "Adoption.subscribed || Adoption.interest > (0.62 + EventMemory.rumor_belief * 0.18 + AccessState.monthly_cost * 0.002)"
+        - target: "AccessState.has_internet"
+          expr: "Adoption.subscribed"
+        - target: "Adoption.days_online"
+          expr: "Adoption.days_online + AccessState.has_internet"
+
+    - system_id: "daily_usage_and_wellbeing_residents"
+      triggered_by: ["tick"]
+      kind: "per_entity"
+      entity_type: "resident"
+      writes:
+        - target: "InternetBehavior.usage_hours"
+          expr: 'clamp(AccessState.has_internet * (0.4 + PersonProfile.digital_skill * 2.4 + Adoption.interest * 1.1 + AccessState.device_quality * 1.0 + rng("daily_usage", 0, 1.4)) * AccessState.router_health, 0, 9)'
+        - target: "InternetBehavior.remote_work_hours"
+          expr: 'clamp(AccessState.has_internet * AccessState.router_health * ((PersonProfile.role == "remote_worker") * 5.0 + (PersonProfile.role == "teacher") * 1.8 + (PersonProfile.role == "vendor") * 1.2 + (PersonProfile.role == "worker") * 1.0 + (PersonProfile.role == "farmer") * 0.5), 0, 8)'
+        - target: "InternetBehavior.learning_hours"
+          expr: 'clamp(AccessState.has_internet * ((PersonProfile.role == "student") * 3.2 + (PersonProfile.role == "teacher") * 1.0 + PersonProfile.digital_skill * 0.3), 0, 5)'
+        - target: "InternetBehavior.social_posts"
+          expr: 'clamp(AccessState.has_internet * (InternetBehavior.social_posts * 0.25 + PersonProfile.digital_skill * 1.1 + rng("daily_posts", 0, 2.5)), 0, 12)'
+        - target: "Wellbeing.productivity"
+          expr: "clamp(Wellbeing.productivity + InternetBehavior.remote_work_hours * 0.004 + AccessState.plan_speed * 0.0004 - EventMemory.service_disruption * 0.004 - Adoption.churn_risk * 0.002, 0, 1)"
+        - target: "Wellbeing.school_progress"
+          expr: 'clamp(Wellbeing.school_progress + InternetBehavior.learning_hours * 0.006 + (PersonProfile.role == "student") * InternetBehavior.trusted_info * 0.003, 0, 1)'
+        - target: "Wellbeing.health_access"
+          expr: 'clamp(Wellbeing.health_access + AccessState.has_internet * ((PersonProfile.role == "elder") * 0.006 + InternetBehavior.trusted_info * 0.002) - EventMemory.service_disruption * 0.002, 0, 1)'
+        - target: "Wellbeing.happiness"
+          expr: "clamp(Wellbeing.happiness + AccessState.has_internet * 0.002 + InternetBehavior.usage_hours * 0.0005 - InternetBehavior.misinformation_exposure * 0.003 - EventMemory.service_disruption * 0.004 - AccessState.monthly_cost * 0.0002, 0, 1)"
+        - target: "Wellbeing.savings"
+          expr: 'clamp(Wellbeing.savings + Wellbeing.productivity * 0.8 + AccessState.has_internet * ((PersonProfile.role == "vendor") * PersonProfile.income * 0.004 + (PersonProfile.role == "remote_worker") * PersonProfile.income * 0.003 + (PersonProfile.role == "farmer") * PersonProfile.income * 0.001) - AccessState.monthly_cost / 30, -500, 10000)'
+
+    - system_id: "reset_network_load"
+      triggered_by: ["tick"]
+      kind: "per_entity"
+      entity_type: "network_hub"
+      writes:
+        - target: "NetworkNode.load"
+          expr: "0"
+        - target: "NetworkNode.outage_pressure"
+          expr: "clamp(NetworkNode.outage_pressure * 0.94 + NetworkNode.repair_backlog * 0.020, 0, 1)"
+
+    - system_id: "served_relation_network_effects"
+      triggered_by: ["tick"]
+      kind: "per_relation"
+      relation_type: "served_by"
+      writes:
+        - target: "self.NetworkNode.load"
+          expr: "NetworkNode.load + other.InternetBehavior.usage_hours * relation.demand_weight * (1.0 + other.AccessState.has_internet * 0.15)"
+        - target: "other.AccessState.plan_speed"
+          expr: "clamp((NetworkNode.capacity / (1 + NetworkNode.load)) * NetworkNode.reliability * 2.8 - relation.distance_km * 0.45, 1, 100)"
+        - target: "other.AccessState.router_health"
+          expr: "clamp(other.AccessState.router_health + NetworkNode.reliability * 0.002 - NetworkNode.outage_pressure * 0.012 - relation.distance_km * 0.001, 0.25, 1)"
+        - target: "other.EventMemory.service_disruption"
+          expr: "clamp(other.EventMemory.service_disruption + (NetworkNode.reliability < 0.55) * 0.6 + (NetworkNode.load > NetworkNode.capacity) * 0.4, 0, 90)"
+
+    - system_id: "daily_social_influence"
+      triggered_by: ["tick"]
+      kind: "per_relation"
+      relation_type: "friendship"
+      writes:
+        - target: "other.Adoption.interest"
+          expr: "clamp(other.Adoption.interest + AccessState.has_internet * relation.tie_strength * 0.003 + InternetBehavior.trusted_info * relation.tie_strength * 0.0015 - EventMemory.rumor_belief * relation.tie_strength * 0.002, 0, 1)"
+        - target: "other.InternetBehavior.misinformation_exposure"
+          expr: "clamp(other.InternetBehavior.misinformation_exposure + InternetBehavior.misinformation_exposure * relation.tie_strength * 0.002, 0, 1)"
+        - target: "other.InternetBehavior.trusted_info"
+          expr: "clamp(other.InternetBehavior.trusted_info + InternetBehavior.trusted_info * relation.tie_strength * 0.001, 0, 1)"
+
+    - system_id: "network_stress_and_slowdown_emission"
+      triggered_by: ["tick"]
+      kind: "per_entity"
+      entity_type: "network_hub"
+      writes:
+        - target: "NetworkNode.reliability"
+          expr: 'clamp(NetworkNode.reliability + 0.012 + rng("maintenance", 0, 0.012) - (NetworkNode.load / NetworkNode.capacity) * 0.080 - NetworkNode.repair_backlog * 0.006, 0.18, 0.99)'
+        - target: "NetworkNode.repair_backlog"
+          expr: "clamp(NetworkNode.repair_backlog + (NetworkNode.load / NetworkNode.capacity > 0.95) * 0.8 + (NetworkNode.reliability < 0.5) * 0.6 - 0.18, 0, 80)"
+      emit_events:
+        - event_type: "service_slowdown"
+          timestamp: "event.timestamp + 0.05"
+          priority: 0
+          when: "NetworkNode.load / NetworkNode.capacity > 0.90 || NetworkNode.reliability < 0.52"
+          payload:
+            ward: "NetworkNode.ward"
+            severity: "clamp(NetworkNode.load / NetworkNode.capacity - 0.85 + (0.55 - NetworkNode.reliability), 0.05, 1.0)"
+
+    - system_id: "service_slowdown_hits_residents"
+      triggered_by: ["service_slowdown"]
+      kind: "per_relation"
+      relation_type: "served_by"
+      where: "NetworkNode.ward == event.ward"
+      writes:
+        - target: "other.EventMemory.service_disruption"
+          expr: "clamp(other.EventMemory.service_disruption + event.severity, 0, 90)"
+        - target: "other.Adoption.churn_risk"
+          expr: "clamp(other.Adoption.churn_risk + event.severity * (0.03 + other.EventMemory.rumor_belief * 0.02), 0, 1)"
+        - target: "other.Wellbeing.happiness"
+          expr: "clamp(other.Wellbeing.happiness - event.severity * 0.030, 0, 1)"
+        - target: "other.EventMemory.help_requests"
+          when: 'other.Adoption.churn_risk > 0.30 && rng("ticket_write", 0, 1) > 0.88'
+          expr: "other.EventMemory.help_requests + 1"
+      create_relations:
+        - relation_type: "help_ticket"
+          source: "other"
+          target: "self"
+          expires_after: "14"
+          when: 'other.Adoption.churn_risk > 0.30 && rng("ticket_relation", 0, 1) > 0.88'
+          payload:
+            severity: "event.severity"
+            created_day: "event.timestamp"
+
+    - system_id: "process_help_tickets"
+      triggered_by: ["tick"]
+      kind: "per_relation"
+      relation_type: "help_ticket"
+      writes:
+        - target: "other.NetworkNode.repair_backlog"
+          expr: "max(0, other.NetworkNode.repair_backlog - relation.severity * 0.030)"
+        - target: "self.Wellbeing.happiness"
+          expr: "clamp(Wellbeing.happiness + 0.001, 0, 1)"
+
+    - system_id: "apply_fiber_cut"
+      triggered_by: ["fiber_cut"]
+      kind: "per_entity"
+      entity_type: "network_hub"
+      where: "NetworkNode.ward == event.ward"
+      writes:
+        - target: "NetworkNode.reliability"
+          expr: "clamp(NetworkNode.reliability - event.severity, 0.10, 0.99)"
+        - target: "NetworkNode.repair_backlog"
+          expr: "clamp(NetworkNode.repair_backlog + event.severity * 20, 0, 80)"
+        - target: "NetworkNode.outage_pressure"
+          expr: "clamp(NetworkNode.outage_pressure + event.severity, 0, 1)"
+
+    - system_id: "apply_repair_drive"
+      triggered_by: ["repair_drive"]
+      kind: "per_entity"
+      entity_type: "network_hub"
+      where: "NetworkNode.ward == event.ward"
+      writes:
+        - target: "NetworkNode.reliability"
+          expr: "clamp(NetworkNode.reliability + event.boost, 0.10, 0.99)"
+        - target: "NetworkNode.repair_backlog"
+          expr: "max(0, NetworkNode.repair_backlog - event.boost * 35)"
+        - target: "NetworkNode.outage_pressure"
+          expr: "clamp(NetworkNode.outage_pressure - event.boost, 0, 1)"
+
+    - system_id: "apply_training_day"
+      triggered_by: ["training_day"]
+      kind: "per_entity"
+      entity_type: "resident"
+      writes:
+        - target: "PersonProfile.digital_skill"
+          expr: 'clamp(PersonProfile.digital_skill + event.skill_boost * (0.6 + rng("training_attendance", 0, 0.6)), 0, 1)'
+        - target: "InternetBehavior.trusted_info"
+          expr: "clamp(InternetBehavior.trusted_info + event.trust_boost, 0, 1)"
+        - target: "EventMemory.rumor_belief"
+          expr: "clamp(EventMemory.rumor_belief - event.trust_boost * 0.4, 0, 1)"
+        - target: "Adoption.interest"
+          expr: "clamp(Adoption.interest + event.skill_boost * 0.5, 0, 1)"
+
+    - system_id: "apply_subsidy_offer"
+      triggered_by: ["subsidy_offer"]
+      kind: "per_entity"
+      entity_type: "resident"
+      where: "PersonProfile.income < event.income_ceiling"
+      writes:
+        - target: "AccessState.monthly_cost"
+          expr: "max(5, AccessState.monthly_cost - event.cost_discount)"
+        - target: "Adoption.interest"
+          expr: "clamp(Adoption.interest + event.interest_boost, 0, 1)"
+        - target: "Adoption.subscribed"
+          expr: "Adoption.subscribed || Adoption.interest > 0.48"
+        - target: "AccessState.has_internet"
+          expr: "Adoption.subscribed"
+
+    - system_id: "apply_school_device_rollout"
+      triggered_by: ["school_device_rollout"]
+      kind: "per_entity"
+      entity_type: "resident"
+      where: 'PersonProfile.role == "student" || PersonProfile.role == "teacher"'
+      writes:
+        - target: "AccessState.device_quality"
+          expr: "clamp(AccessState.device_quality + event.device_boost, 0, 1)"
+        - target: "Adoption.interest"
+          expr: "clamp(Adoption.interest + event.trust_boost, 0, 1)"
+        - target: "InternetBehavior.trusted_info"
+          expr: "clamp(InternetBehavior.trusted_info + event.trust_boost, 0, 1)"
+
+    - system_id: "rumor_wave_social_spread"
+      triggered_by: ["rumor_wave"]
+      kind: "per_relation"
+      relation_type: "friendship"
+      writes:
+        - target: "other.EventMemory.rumor_belief"
+          expr: "clamp(other.EventMemory.rumor_belief + event.intensity * relation.tie_strength * max(0.1, 1 - other.InternetBehavior.trusted_info) + InternetBehavior.misinformation_exposure * 0.05, 0, 1)"
+        - target: "other.InternetBehavior.misinformation_exposure"
+          expr: "clamp(other.InternetBehavior.misinformation_exposure + event.intensity * relation.tie_strength * 0.20, 0, 1)"
+        - target: "other.Adoption.churn_risk"
+          expr: "clamp(other.Adoption.churn_risk + event.intensity * relation.tie_strength * 0.035, 0, 1)"
+
+    - system_id: "festival_stream_spike"
+      triggered_by: ["festival_stream"]
+      kind: "per_entity"
+      entity_type: "resident"
+      writes:
+        - target: "InternetBehavior.usage_hours"
+          expr: "clamp(InternetBehavior.usage_hours + event.demand_boost * AccessState.has_internet * (0.5 + PersonProfile.digital_skill), 0, 12)"
+        - target: "InternetBehavior.social_posts"
+          expr: "clamp(InternetBehavior.social_posts + event.post_boost * AccessState.has_internet * (0.2 + PersonProfile.digital_skill), 0, 20)"
+        - target: "InternetBehavior.misinformation_exposure"
+          expr: "clamp(InternetBehavior.misinformation_exposure + event.post_boost * 0.02 * AccessState.has_internet, 0, 1)"
