@@ -307,11 +307,13 @@ public:
 
     TypedExpressionParser(std::string_view expression,
                           Resolver resolver,
+                          const noisiax::extensions::ExpressionFunctionRegistry* function_registry,
                           DeterministicRng* rng,
                           std::vector<RandomDrawTrace>* event_draws,
                           std::vector<RandomDrawTrace>* system_draws)
         : expression_(expression),
           resolver_(std::move(resolver)),
+          function_registry_(function_registry),
           rng_(rng),
           event_draws_(event_draws),
           system_draws_(system_draws) {}
@@ -329,6 +331,7 @@ private:
     std::string_view expression_;
     std::size_t position_ = 0;
     Resolver resolver_;
+    const noisiax::extensions::ExpressionFunctionRegistry* function_registry_ = nullptr;
     DeterministicRng* rng_ = nullptr;
     std::vector<RandomDrawTrace>* event_draws_ = nullptr;
     std::vector<RandomDrawTrace>* system_draws_ = nullptr;
@@ -575,7 +578,7 @@ private:
         ++position_;
         while (position_ < expression_.size()) {
             const char c = expression_[position_];
-            if (std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '_') {
+            if (std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '_' || c == ':' || c == '.') {
                 ++position_;
                 continue;
             }
@@ -602,26 +605,6 @@ private:
             return eval_function(name, args);
         }
 
-        while (consume(".")) {
-            skip_spaces();
-            if (position_ >= expression_.size() ||
-                (std::isalpha(static_cast<unsigned char>(expression_[position_])) == 0 && expression_[position_] != '_')) {
-                throw std::runtime_error("Expected identifier after '.'");
-            }
-            const std::size_t seg_start = position_;
-            ++position_;
-            while (position_ < expression_.size()) {
-                const char c = expression_[position_];
-                if (std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '_') {
-                    ++position_;
-                    continue;
-                }
-                break;
-            }
-            name.push_back('.');
-            name.append(expression_.substr(seg_start, position_ - seg_start));
-        }
-
         auto resolved = resolver_(name);
         if (!resolved.has_value()) {
             throw std::runtime_error("Unknown identifier in expression: " + name);
@@ -643,32 +626,7 @@ private:
     }
 
     ExprValue eval_function(const std::string& name, const std::vector<ExprValue>& args) {
-        if (name == "min") {
-            if (args.size() != 2) throw std::runtime_error("min(a,b) expects 2 arguments");
-            return std::min(expr_as_number(args[0]), expr_as_number(args[1]));
-        }
-        if (name == "max") {
-            if (args.size() != 2) throw std::runtime_error("max(a,b) expects 2 arguments");
-            return std::max(expr_as_number(args[0]), expr_as_number(args[1]));
-        }
-        if (name == "clamp") {
-            if (args.size() != 3) throw std::runtime_error("clamp(x,lo,hi) expects 3 arguments");
-            const double x = expr_as_number(args[0]);
-            const double lo = expr_as_number(args[1]);
-            const double hi = expr_as_number(args[2]);
-            return std::max(lo, std::min(x, hi));
-        }
-        if (name == "abs") {
-            if (args.size() != 1) throw std::runtime_error("abs(x) expects 1 argument");
-            return std::abs(expr_as_number(args[0]));
-        }
-        if (name == "sqrt") {
-            if (args.size() != 1) throw std::runtime_error("sqrt(x) expects 1 argument");
-            const double x = expr_as_number(args[0]);
-            if (x < 0.0) throw std::runtime_error("sqrt(x) expects x >= 0");
-            return std::sqrt(x);
-        }
-        if (name == "rng") {
+        if (name == "rng" || name == "std::rng_uniform") {
             if (args.size() != 3) throw std::runtime_error("rng(key,min,max) expects 3 arguments");
             if (rng_ == nullptr) throw std::runtime_error("rng() used without RNG context");
             const std::string key = expr_as_string(args[0]);
@@ -694,6 +652,13 @@ private:
             }
             return value;
         }
+
+        if (function_registry_ != nullptr) {
+            if (const auto* fn = function_registry_->find(name); fn != nullptr) {
+                return (*fn)(args);
+            }
+        }
+
         throw std::runtime_error("Unknown function in expression: " + name);
     }
 };
@@ -1114,6 +1079,7 @@ RunResult run_typed_layer_scenario(const compiler::CompiledScenario& compiled, c
                             [&](std::string_view ident) {
                                 return resolve_identifier(ident, self_entity, other_entity, event, relation);
                             },
+                            &compiled.expression_functions,
                             &rng,
                             &event_draws,
                             &system_draws);
@@ -1129,6 +1095,7 @@ RunResult run_typed_layer_scenario(const compiler::CompiledScenario& compiled, c
                             [&](std::string_view ident) {
                                 return resolve_identifier(ident, self_entity, other_entity, event, relation);
                             },
+                            &compiled.expression_functions,
                             &rng,
                             &event_draws,
                             &system_draws);

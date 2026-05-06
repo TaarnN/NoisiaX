@@ -1,0 +1,132 @@
+scenario_id: "v2_social_influence"
+schema_version: "2.0.0"
+master_seed: 202
+
+goal_statement: |
+  Verify that v2 can create observation memory and social influence when one
+  agent observes another agent's purchase in the same location.
+
+assumptions:
+  - assumption_id: "v2_social_assume_001"
+    category: "fixture"
+    description: "Agents at the same location can observe nearby purchases."
+    rationale: "Observation is the smallest social influence path in v2."
+    confidence_level: REJECT
+
+entities:
+  - entity_id: "v2_social_entity"
+    entity_type: "fixture_anchor"
+    description: "Compatibility anchor for v1 validation gates."
+    attributes:
+      fixture: "v2_social_influence"
+
+variables:
+  - variable_id: "v2_social_anchor"
+    entity_ref: "v2_social_entity"
+    type: FLOAT
+    default_value: 1.0
+    min_value: 0
+    description: "Compatibility anchor variable."
+  - variable_id: "v2_social_guard"
+    entity_ref: "v2_social_entity"
+    type: FLOAT
+    default_value: 1.0
+    min_value: 0
+    description: "Compatibility guard variable."
+
+dependency_edges:
+  - edge_id: "v2_social_anchor_guard"
+    source_variable: "v2_social_anchor"
+    target_variable: "v2_social_guard"
+    propagation_function_id: "linear_scale"
+    weight: 1.0
+
+constraints:
+  - constraint_id: "v2_social_guard_non_negative"
+    affected_variables: ["v2_social_guard"]
+    constraint_expression: "v2_social_guard >= 0"
+    enforcement_level: REJECT
+    error_message: "v2_social_guard must remain non-negative."
+
+events: []
+
+evaluation_criteria:
+  - criterion_id: "v2_social_eval"
+    metric_name: "compatibility_guard"
+    aggregation_method: FINAL
+    input_variables: ["v2_social_guard"]
+    threshold_min: 0
+    description: "Compatibility check for the v1 validation path."
+
+agent_layer:
+  world:
+    duration: 10.0
+    time_unit: "minutes"
+    map_width: 12.0
+    map_height: 12.0
+    default_walking_speed: 1.2
+    max_event_count: 400
+
+  locations:
+    - location_id: "shared_counter"
+      location_type: "shop"
+      x: 4.0
+      y: 4.0
+
+  items:
+    - item_id: "bright_fruit"
+      category: "food"
+      tags: ["food", "fresh", "sweet"]
+      base_appeal: 1.35
+    - item_id: "fresh_drink"
+      category: "drink"
+      tags: ["drink", "fresh", "cold"]
+      base_appeal: 1.1
+
+  shops:
+    - shop_id: "shared_stall"
+      location_ref: "shared_counter"
+      service_time: 0.15
+      queue_capacity: 4
+      inventory:
+        - item_id: "bright_fruit"
+          price: 1.0
+          stock: 4
+        - item_id: "fresh_drink"
+          price: 1.0
+          stock: 4
+
+  agents:
+    - agent_id: "source_agent"
+      start_location_ref: "shared_counter"
+      budget: 3.0
+      movement_speed: 1.2
+      hunger: 1.1
+      social_susceptibility: 0.2
+      memory_slots: 4
+      policy_ref: "social_policy"
+      traits:
+        sociability: 0.8
+      preferences:
+        bright_fruit: 1.5
+        fresh_drink: 0.8
+    - agent_id: "observer_agent"
+      start_location_ref: "shared_counter"
+      budget: 3.0
+      movement_speed: 1.2
+      hunger: 0.9
+      social_susceptibility: 1.0
+      memory_slots: 6
+      policy_ref: "social_policy"
+      traits:
+        sociability: 0.9
+      preferences:
+        bright_fruit: 0.8
+        fresh_drink: 1.2
+
+  policies:
+    - policy_id: "social_policy"
+      movement_policy: "same_location"
+      observation_policy: "line_of_sight"
+      conversation_policy: "casual"
+      purchase_policy: "weighted_rule_v2"

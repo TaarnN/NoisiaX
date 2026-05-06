@@ -1,5 +1,10 @@
 #include "noisiax/experiment/experiment.hpp"
 
+#include "noisiax/extensions/diagnostics.hpp"
+#include "noisiax/extensions/default_registry.hpp"
+#include "noisiax/extensions/extension_registry.hpp"
+#include "noisiax/extensions/semver.hpp"
+#include "noisiax/extensions/symbol_id.hpp"
 #include "noisiax/serialization/yaml_serializer.hpp"
 #include "noisiax/validation/scenario_validator.hpp"
 
@@ -8,6 +13,7 @@
 #include <cctype>
 #include <filesystem>
 #include <fstream>
+#include <map>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
@@ -711,15 +717,205 @@ std::vector<ImportSpec> parse_imports(const YAML::Node& root) {
     return imports;
 }
 
+std::vector<extensions::DeclaredExtension> parse_declared_extensions(const YAML::Node& root) {
+    std::vector<extensions::DeclaredExtension> out;
+    if (!root || !root.IsMap() || !root["extensions"]) {
+        return out;
+    }
+
+    const auto node = root["extensions"];
+    if (!node.IsSequence()) {
+        throw std::runtime_error("extensions must be a YAML sequence");
+    }
+
+    for (const auto& item : node) {
+        if (!item.IsMap()) {
+            throw std::runtime_error("extensions entries must be mapping nodes");
+        }
+        if (!item["id"]) {
+            throw std::runtime_error("extensions entry missing required field: id");
+        }
+
+        extensions::DeclaredExtension ext;
+        ext.id = item["id"].as<std::string>();
+        if (item["version"]) {
+            const std::string v = item["version"].as<std::string>();
+            const auto parsed = extensions::parse_semver(v);
+            if (!parsed.has_value()) {
+                throw std::runtime_error("extensions entry has invalid semver version: " + v);
+            }
+            ext.version = *parsed;
+        }
+        if (item["compatibility"]) {
+            ext.compatibility = item["compatibility"].as<std::string>();
+        }
+        if (item["config"]) {
+            ext.config = item["config"];
+        }
+        out.push_back(std::move(ext));
+    }
+
+    return out;
+}
+
+const std::unordered_set<std::string>& core_root_keys() {
+    static const std::unordered_set<std::string> keys{
+        "scenario_id",
+        "schema_version",
+        "master_seed",
+        "goal_statement",
+        "assumptions",
+        "entities",
+        "variables",
+        "dependency_edges",
+        "constraints",
+        "events",
+        "agent_layer",
+        "typed_layer",
+        "evaluation_criteria",
+        "metadata",
+    };
+    return keys;
+}
+
+bool is_reserved_authoring_key(const std::string& key) {
+    return key == "imports" || key == "extensions" || key == "hooks";
+}
+
+void merge_yaml_nodes(YAML::Node& dst, const YAML::Node& src, std::string_view context) {
+    if (!src) {
+        return;
+    }
+    if (!dst || dst.IsNull()) {
+        dst = YAML::Clone(src);
+        return;
+    }
+    if (dst.Type() != src.Type()) {
+        throw std::runtime_error("Conflicting YAML node types while merging " + std::string(context));
+    }
+    if (dst.IsMap()) {
+        for (const auto& entry : src) {
+            const YAML::Node key_node = entry.first;
+            const YAML::Node value_node = entry.second;
+            const std::string key = key_node.as<std::string>();
+            if (dst[key]) {
+                YAML::Node existing = dst[key];
+                merge_yaml_nodes(existing, value_node, context);
+                dst[key] = existing;
+            } else {
+                dst[key] = YAML::Clone(value_node);
+            }
+        }
+        return;
+    }
+    if (dst.IsSequence()) {
+        for (const auto& item : src) {
+            dst.push_back(YAML::Clone(item));
+        }
+        return;
+    }
+    // Scalars: require exact match to avoid nondeterministic override semantics.
+    if (dst.as<std::string>() != src.as<std::string>()) {
+        throw std::runtime_error("Conflicting scalar values while merging " + std::string(context));
+    }
+}
+
+void merge_declared_extensions(std::vector<extensions::DeclaredExtension>& dst,
+                               const std::vector<extensions::DeclaredExtension>& src) {
+    std::map<std::string, std::size_t> index;
+    for (std::size_t i = 0; i < dst.size(); ++i) {
+        index[dst[i].id] = i;
+    }
+
+    for (const auto& ext : src) {
+        auto it = index.find(ext.id);
+        if (it == index.end()) {
+            index[ext.id] = dst.size();
+            dst.push_back(ext);
+            continue;
+        }
+
+        const auto& existing = dst[it->second];
+        if (existing.version != ext.version) {
+            throw std::runtime_error("Conflicting extension versions declared for: " + ext.id);
+        }
+        if (existing.compatibility != ext.compatibility) {
+            throw std::runtime_error("Conflicting extension compatibility ranges declared for: " + ext.id);
+        }
+        if (existing.config && ext.config) {
+            if (YAML::Dump(existing.config) != YAML::Dump(ext.config)) {
+                throw std::runtime_error("Conflicting extension configs declared for: " + ext.id);
+            }
+        } else if (existing.config && !ext.config) {
+            // Keep existing.
+        } else if (!existing.config && ext.config) {
+            dst[it->second].config = ext.config;
+        }
+    }
+}
+
+void merge_extension_blocks(std::map<std::string, YAML::Node>& dst,
+                            const std::map<std::string, YAML::Node>& src) {
+    for (const auto& [id, block] : src) {
+        if (!dst.contains(id)) {
+            dst[id] = YAML::Clone(block);
+            continue;
+        }
+        merge_yaml_nodes(dst[id], block, "extension block '" + id + "'");
+    }
+}
+
+std::map<std::string, YAML::Node> parse_extension_blocks(const YAML::Node& root) {
+    std::map<std::string, YAML::Node> out;
+    if (!root || !root.IsMap()) {
+        return out;
+    }
+    const auto& core_keys = core_root_keys();
+    for (const auto& entry : root) {
+        const std::string key = entry.first.as<std::string>();
+        if (core_keys.contains(key) || is_reserved_authoring_key(key)) {
+            continue;
+        }
+        out[key] = YAML::Clone(entry.second);
+    }
+    return out;
+}
+
+YAML::Node sanitize_for_core_deserialize(const YAML::Node& root,
+                                        const std::map<std::string, YAML::Node>& extension_blocks) {
+    if (!root || !root.IsMap()) {
+        return YAML::Clone(root);
+    }
+
+    YAML::Node sanitized(YAML::NodeType::Map);
+    for (const auto& entry : root) {
+        const std::string key = entry.first.as<std::string>();
+        if (key == "imports" || key == "extensions" || key == "hooks") {
+            continue;
+        }
+        if (extension_blocks.find(key) != extension_blocks.end()) {
+            continue;
+        }
+        sanitized[key] = entry.second;
+    }
+    return sanitized;
+}
+
 struct ResolveContext {
     std::unordered_set<std::string> visiting;
-    std::unordered_map<std::string, schema::ScenarioDefinition> resolved_cache;
+    struct ResolvedAuthoring {
+        schema::ScenarioDefinition scenario;
+        std::vector<extensions::DeclaredExtension> declared_extensions;
+        std::map<std::string, YAML::Node> extension_blocks;
+    };
+
+    std::unordered_map<std::string, ResolvedAuthoring> resolved_cache;
     CompositionReport report;
 };
 
-schema::ScenarioDefinition resolve_definition(const fs::path& input_path,
-                                             const ResolveOptions& options,
-                                             ResolveContext& ctx) {
+ResolveContext::ResolvedAuthoring resolve_definition(const fs::path& input_path,
+                                                     const ResolveOptions& options,
+                                                     ResolveContext& ctx) {
     std::error_code ec;
     const fs::path abs = fs::absolute(input_path, ec).lexically_normal();
     const std::string canonical_path = abs.string();
@@ -740,26 +936,22 @@ schema::ScenarioDefinition resolve_definition(const fs::path& input_path,
     const auto imports = parse_imports(root);
 
     serialization::YamlSerializer serializer;
-    // Scenario files may include a v4-only top-level "imports" stanza. The core
-    // ScenarioDefinition schema stays strict; resolve-time composition is the
-    // only place that understands "imports".
-    YAML::Node sanitized;
-    if (root && root.IsMap() && root["imports"]) {
-        sanitized = YAML::Node(YAML::NodeType::Map);
-        for (const auto& entry : root) {
-            const std::string key = entry.first.as<std::string>();
-            if (key == "imports") {
-                continue;
-            }
-            sanitized[key] = entry.second;
-        }
-    } else {
-        sanitized = YAML::Clone(root);
-    }
+
+    const auto declared_exts = parse_declared_extensions(root);
+    const auto ext_blocks = parse_extension_blocks(root);
+    // Scenario files may include authoring-only stanzas ("imports", "extensions", "hooks") plus
+    // extension-owned top-level blocks. The core schema stays strict; resolve-time composition
+    // and v5 authoring transforms are the only places that understand these keys.
+    const YAML::Node sanitized = sanitize_for_core_deserialize(root, ext_blocks);
     YAML::Emitter emitter;
     emitter.SetIndent(2);
     emitter << sanitized;
     schema::ScenarioDefinition scenario = serializer.deserialize(emitter.c_str());
+
+    ResolveContext::ResolvedAuthoring authoring;
+    authoring.scenario = std::move(scenario);
+    authoring.declared_extensions = declared_exts;
+    authoring.extension_blocks = ext_blocks;
 
     for (const auto& imp : imports) {
         ctx.report.imports.push_back(imp);
@@ -767,16 +959,18 @@ schema::ScenarioDefinition resolve_definition(const fs::path& input_path,
         if (child.is_relative()) {
             child = abs.parent_path() / child;
         }
-        schema::ScenarioDefinition resolved_child = resolve_definition(child, options, ctx);
+        ResolveContext::ResolvedAuthoring resolved_child = resolve_definition(child, options, ctx);
         if (imp.namespace_prefix.has_value()) {
-            prefix_fragment(resolved_child, *imp.namespace_prefix);
+            prefix_fragment(resolved_child.scenario, *imp.namespace_prefix);
         }
-        merge_scenario(scenario, resolved_child);
+        merge_scenario(authoring.scenario, resolved_child.scenario);
+        merge_declared_extensions(authoring.declared_extensions, resolved_child.declared_extensions);
+        merge_extension_blocks(authoring.extension_blocks, resolved_child.extension_blocks);
     }
 
     ctx.visiting.erase(canonical_path);
-    ctx.resolved_cache.emplace(canonical_path, scenario);
-    return scenario;
+    ctx.resolved_cache.emplace(canonical_path, authoring);
+    return authoring;
 }
 
 }  // namespace
@@ -788,7 +982,149 @@ ResolvedScenario resolve_scenario(const std::string& path, const ResolveOptions&
     const std::string raw = read_file_or_throw(input);
     ctx.report.source_hash = to_hex_u64(fnv1a_64(raw));
 
-    schema::ScenarioDefinition resolved = resolve_definition(input, options, ctx);
+    ResolveContext::ResolvedAuthoring authoring = resolve_definition(input, options, ctx);
+
+    auto canonicalize_legacy_names = [](schema::ScenarioDefinition& scenario) {
+        auto canonical_propagation_id = [](const std::string& legacy) -> std::optional<std::string> {
+            if (extensions::is_valid_symbol_id(legacy)) {
+                return legacy;
+            }
+            if (legacy == "linear_scale") return std::string("core::linear_scale");
+            if (legacy == "apply_discount") return std::string("core::apply_discount");
+            if (legacy == "additive") return std::string("core::additive");
+            if (legacy == "max_propagate") return std::string("core::max_propagate");
+            if (legacy == "min_propagate") return std::string("core::min_propagate");
+            return std::nullopt;
+        };
+
+        for (auto& edge : scenario.dependency_edges) {
+            const auto mapped = canonical_propagation_id(edge.propagation_function_id);
+            if (mapped.has_value()) {
+                edge.propagation_function_id = *mapped;
+            }
+        }
+    };
+
+    schema::ScenarioDefinition resolved = std::move(authoring.scenario);
+
+    const bool has_v5_authoring =
+        !authoring.declared_extensions.empty() || !authoring.extension_blocks.empty();
+    const auto schema_ver = extensions::parse_semver(resolved.schema_version);
+    if (!schema_ver.has_value()) {
+        throw std::runtime_error("Resolved scenario has invalid schema_version: " + resolved.schema_version);
+    }
+    if (has_v5_authoring && schema_ver->major < 5) {
+        throw std::runtime_error("v5 authoring keys are only allowed with schema_version >= 5.0.0");
+    }
+
+    if (schema_ver->major >= 5 || has_v5_authoring) {
+        extensions::ExtensionRegistry registry = extensions::make_default_registry();
+
+        extensions::DiagnosticSink sink;
+        const auto resolved_exts = registry.resolve_declared(authoring.declared_extensions, sink);
+
+        // Extension blocks must be declared.
+        std::unordered_set<std::string> declared_ids;
+        declared_ids.reserve(authoring.declared_extensions.size());
+        for (const auto& ext : authoring.declared_extensions) {
+            declared_ids.insert(ext.id);
+        }
+        for (const auto& [block_id, _] : authoring.extension_blocks) {
+            if (declared_ids.find(block_id) == declared_ids.end()) {
+                sink.error("Unknown extension block (not declared in extensions): " + block_id);
+            }
+        }
+
+        if (sink.has_errors()) {
+            std::ostringstream oss;
+            oss << "Extension discovery failed";
+            for (const auto& d : sink.diagnostics()) {
+                if (d.severity == extensions::DiagnosticSeverity::ERROR) {
+                    oss << "\n- " << d.message;
+                }
+            }
+            throw std::runtime_error(oss.str());
+        }
+
+        // Register symbols and run transforms in declared order.
+        for (const auto& ext : resolved_exts) {
+            const auto* impl = registry.find_extension(ext.descriptor.id);
+            if (impl == nullptr) {
+                throw std::runtime_error("Internal error: resolved extension missing: " + ext.descriptor.id);
+            }
+            impl->register_symbols(registry);
+        }
+
+        serialization::YamlSerializer serializer;
+        YAML::Node authoring_root = YAML::Load(serializer.serialize(resolved));
+        // Reconstruct authoring-only view for transforms.
+        if (!authoring.declared_extensions.empty()) {
+            YAML::Node ext_seq(YAML::NodeType::Sequence);
+            for (const auto& ext : authoring.declared_extensions) {
+                YAML::Node item(YAML::NodeType::Map);
+                item["id"] = ext.id;
+                if (ext.version.has_value()) {
+                    item["version"] = extensions::to_string(*ext.version);
+                }
+                if (!ext.compatibility.empty()) {
+                    item["compatibility"] = ext.compatibility;
+                }
+                if (ext.config) {
+                    item["config"] = ext.config;
+                }
+                ext_seq.push_back(item);
+            }
+            authoring_root["extensions"] = ext_seq;
+        }
+        for (const auto& [id, block] : authoring.extension_blocks) {
+            authoring_root[id] = YAML::Clone(block);
+        }
+
+        for (const auto& ext : resolved_exts) {
+            const auto* impl = registry.find_extension(ext.descriptor.id);
+            if (impl == nullptr) continue;
+            const YAML::Node block = authoring_root[ext.descriptor.id];
+            impl->validate_authoring_block(block, ext.config, sink);
+        }
+
+        if (sink.has_errors()) {
+            std::ostringstream oss;
+            oss << "Extension validation failed";
+            for (const auto& d : sink.diagnostics()) {
+                if (d.severity == extensions::DiagnosticSeverity::ERROR) {
+                    oss << "\n- " << d.message;
+                }
+            }
+            throw std::runtime_error(oss.str());
+        }
+
+        extensions::TransformContext tctx;
+        YAML::Node lowered = authoring_root;
+        for (const auto& ext : resolved_exts) {
+            const auto* impl = registry.find_extension(ext.descriptor.id);
+            if (impl == nullptr) continue;
+            lowered = impl->transform(tctx, lowered, ext.config).lowered_root;
+        }
+
+        // Strip authoring-only keys and ensure extension blocks were lowered.
+        if (lowered && lowered.IsMap()) {
+            lowered.remove("imports");
+            lowered.remove("extensions");
+            lowered.remove("hooks");
+            for (const auto& ext : resolved_exts) {
+                if (lowered[ext.descriptor.id]) {
+                    throw std::runtime_error("Extension transform did not lower block: " + ext.descriptor.id);
+                }
+            }
+        }
+
+        YAML::Emitter out;
+        out.SetIndent(2);
+        out << lowered;
+        resolved = serializer.deserialize(out.c_str());
+    }
+
+    canonicalize_legacy_names(resolved);
 
     if (options.validate_resolved) {
         validation::ScenarioValidator validator;

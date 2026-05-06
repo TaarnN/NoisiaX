@@ -1,0 +1,37 @@
+scenario_id: "v3_invalid_unknown_component"
+schema_version: "1.0.0"
+master_seed: 1
+goal_statement: "Invalid: entity_type references unknown component type."
+assumptions:
+  - assumption_id: "assume_invalid_unknown_component"
+    category: "test"
+    description: "This fixture should fail validation."
+    rationale: "Unknown component reference."
+    confidence_level: REJECT
+
+typed_layer:
+  world:
+    duration: 1.0
+    time_unit: "ticks"
+    max_event_count: 10
+
+  component_types:
+    - component_type_id: "Known"
+      fields:
+        x: FLOAT
+
+  entity_types:
+    - entity_type_id: "bad_type"
+      components: ["UnknownComponent"]
+
+  event_types:
+    - event_type_id: "start"
+      payload_fields: {}
+
+  entities:
+    - entity_id: "e1"
+      entity_type: "bad_type"
+      components:
+        Known:
+          x: 0.0
+

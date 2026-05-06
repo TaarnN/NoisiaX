@@ -1,0 +1,165 @@
+scenario_id: "v3_complex_rumor_spread"
+schema_version: "1.0.0"
+master_seed: 2026
+goal_statement: |
+  A more complex v3 typed_layer example that demonstrates:
+  relations (with payload + expiration), pair/per_entity/per_relation systems,
+  where/when guards, deterministic rng(), and child event emission with payloads.
+assumptions:
+  - assumption_id: "assume_demo_scope"
+    category: "demo"
+    description: "Small number of people and simple rules are enough to demonstrate typed_layer features."
+    rationale: "Keep the file readable while still exercising advanced features."
+    confidence_level: WARN
+
+typed_layer:
+  world:
+    duration: 6.0
+    time_unit: "ticks"
+    max_event_count: 200
+    tick_interval: 1.0
+
+  component_types:
+    - component_type_id: "Position"
+      fields:
+        x: FLOAT
+        y: FLOAT
+    - component_type_id: "Profile"
+      fields:
+        sociability: FLOAT
+        skepticism: FLOAT
+    - component_type_id: "Rumor"
+      fields:
+        knows: BOOLEAN
+        exposures: INTEGER
+
+  entity_types:
+    - entity_type_id: "person"
+      components: ["Position", "Profile", "Rumor"]
+
+  relation_types:
+    - relation_type_id: "friend"
+      directed: false
+      max_total: 100
+      payload_fields:
+        strength: FLOAT
+    - relation_type_id: "temporary_boost"
+      directed: false
+      max_total: 10
+      payload_fields:
+        boost: INTEGER
+
+  event_types:
+    - event_type_id: "tick"
+      payload_fields:
+        dt: FLOAT
+    - event_type_id: "start"
+      payload_fields: {}
+    - event_type_id: "message"
+      payload_fields:
+        intensity: FLOAT
+
+  entities:
+    - entity_id: "alice"
+      entity_type: "person"
+      components:
+        Position: { x: 0.0, y: 0.0 }
+        Profile: { sociability: 0.9, skepticism: 0.2 }
+        Rumor: { knows: true, exposures: 1 }
+    - entity_id: "bob"
+      entity_type: "person"
+      components:
+        Position: { x: 0.4, y: 0.0 }
+        Profile: { sociability: 0.6, skepticism: 0.4 }
+        Rumor: { knows: false, exposures: 0 }
+    - entity_id: "cara"
+      entity_type: "person"
+      components:
+        Position: { x: 0.9, y: 0.2 }
+        Profile: { sociability: 0.3, skepticism: 0.8 }
+        Rumor: { knows: false, exposures: 0 }
+    - entity_id: "dan"
+      entity_type: "person"
+      components:
+        Position: { x: 1.8, y: 0.0 }
+        Profile: { sociability: 0.7, skepticism: 0.3 }
+        Rumor: { knows: false, exposures: 0 }
+    - entity_id: "eve"
+      entity_type: "person"
+      components:
+        Position: { x: 2.2, y: 0.1 }
+        Profile: { sociability: 0.2, skepticism: 0.9 }
+        Rumor: { knows: false, exposures: 0 }
+
+  initial_events:
+    - event_type: "start"
+      timestamp: 0.0
+      priority: 10
+      event_handle: "start_0000"
+
+  systems:
+    # 1) Pair system: build friend relations based on distance at start.
+    - system_id: "bootstrap_friend_edges"
+      triggered_by: ["start"]
+      kind: "pair"
+      entity_type: "person"
+      where: "sqrt((Position.x - other.Position.x) * (Position.x - other.Position.x) + (Position.y - other.Position.y) * (Position.y - other.Position.y)) <= 1.0"
+      create_relations:
+        - relation_type: "friend"
+          source: "self"
+          target: "other"
+          payload:
+            strength: "clamp(1.0 - sqrt((Position.x - other.Position.x) * (Position.x - other.Position.x) + (Position.y - other.Position.y) * (Position.y - other.Position.y)), 0.1, 1.0)"
+        - relation_type: "temporary_boost"
+          source: "self"
+          target: "other"
+          expires_after: "2"
+          when: "rng(\"temp_boost\", 0, 1) < 0.3"
+          payload:
+            boost: "1"
+
+    # 2) Per-entity system: simple deterministic motion so distances can change over time.
+    #    (Uses event.dt payload from the tick scheduler.)
+    - system_id: "walk_right_slowly"
+      triggered_by: ["tick"]
+      kind: "per_entity"
+      entity_type: "person"
+      writes:
+        - target: "Position.x"
+          expr: "Position.x + 0.05 * event.dt"
+
+    # 3) Per-relation system: for each friend relation, attempt to send a message.
+    #    Demonstrates reading relation payload, deterministic rng(), and event emission.
+    - system_id: "attempt_spread_over_friend_edges"
+      triggered_by: ["tick"]
+      kind: "per_relation"
+      relation_type: "friend"
+      where: "self.Rumor.knows == true && other.Rumor.knows == false"
+      emit_events:
+        - event_type: "message"
+          timestamp: "event.timestamp"
+          priority: 0
+          when: "rng(\"p_message\", 0, 1) < (self.Profile.sociability * relation.strength)"
+          payload:
+            intensity: "relation.strength"
+      writes:
+        - target: "other.Rumor.exposures"
+          when: "rng(\"p_message_write\", 0, 1) < (self.Profile.sociability * relation.strength)"
+          expr: "other.Rumor.exposures + 1"
+        - target: "other.Rumor.knows"
+          when: "other.Rumor.exposures >= 2 && rng(\"p_accept\", 0, 1) > other.Profile.skepticism"
+          expr: "true"
+
+    # 4) Per-relation system: temporary_boost lasts ~2 ticks then expires.
+    #    While it exists, it increases exposures on both endpoints.
+    - system_id: "temporary_boost_effect"
+      triggered_by: ["tick"]
+      kind: "per_relation"
+      relation_type: "temporary_boost"
+      writes:
+        - target: "self.Rumor.exposures"
+          when: "relation.expires_at > event.timestamp"
+          expr: "self.Rumor.exposures + relation.boost"
+        - target: "other.Rumor.exposures"
+          when: "relation.expires_at > event.timestamp"
+          expr: "other.Rumor.exposures + relation.boost"

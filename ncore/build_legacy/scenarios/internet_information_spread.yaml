@@ -1,0 +1,643 @@
+# NoisiaX V1 Real-World Style Scenario
+# Internet information spread across online communities.
+#
+# This models groups of people, not individual users. It fits the current v1
+# engine: numeric variables, static dependency graph, scheduled events.
+
+scenario_id: "internet_information_spread_001"
+schema_version: "1.0.0"
+master_seed: 20260504
+
+goal_statement: |
+  Simulate how a single online claim spreads through several internet
+  communities after platform promotion, creator amplification, user resharing,
+  reports, and moderation response.
+
+assumptions:
+  - assumption_id: "assume_001"
+    category: "population_model"
+    description: "People are grouped into communities instead of represented one by one."
+    rationale: "NoisiaX v1 is better suited to grouped numeric state than individual dynamic agents."
+    confidence_level: REJECT
+
+  - assumption_id: "assume_002"
+    category: "network_shape"
+    description: "The relationships between communities are fixed for this scenario run."
+    rationale: "NoisiaX v1 uses a static dependency graph."
+    confidence_level: REJECT
+
+  - assumption_id: "assume_003"
+    category: "interpretation"
+    description: "Values are relative index scores rather than exact real-world user counts."
+    rationale: "The current runtime does not yet provide calibrated social-network units."
+    confidence_level: WARN
+
+entities:
+  - entity_id: "entity_platform"
+    entity_type: "internet_platform"
+    description: "The social platform feed and recommendation layer"
+    attributes:
+      domain: "public_social_feed"
+      region: "global"
+
+  - entity_id: "entity_creator_cluster"
+    entity_type: "creator_cluster"
+    description: "A group of high-reach accounts that can amplify a post"
+    attributes:
+      audience_size: "large"
+      posting_style: "fast_reaction"
+
+  - entity_id: "entity_news_community"
+    entity_type: "online_community"
+    description: "Users who follow breaking news and current events"
+    attributes:
+      community_style: "news_tracking"
+      verification_habit: "medium"
+
+  - entity_id: "entity_fan_community"
+    entity_type: "online_community"
+    description: "Users who strongly like the creator cluster"
+    attributes:
+      community_style: "creator_fandom"
+      verification_habit: "low"
+
+  - entity_id: "entity_skeptic_community"
+    entity_type: "online_community"
+    description: "Users who tend to challenge or report questionable claims"
+    attributes:
+      community_style: "skeptical_discussion"
+      verification_habit: "high"
+
+  - entity_id: "entity_moderation"
+    entity_type: "platform_operations"
+    description: "Moderation and fact-checking response"
+    attributes:
+      response_mode: "scheduled_review"
+      team_scope: "platform_level"
+
+variables:
+  - variable_id: "platform_algorithm_boost"
+    entity_ref: "entity_platform"
+    type: FLOAT
+    default_value: 600.0
+    min_value: 0
+    max_value: 100000
+    description: "How strongly the platform feed promotes the claim"
+
+  - variable_id: "seed_post_visibility"
+    entity_ref: "entity_platform"
+    type: FLOAT
+    default_value: 600.0
+    min_value: 0
+    max_value: 100000
+    description: "How visible the original post is"
+
+  - variable_id: "creator_reach"
+    entity_ref: "entity_creator_cluster"
+    type: FLOAT
+    default_value: 420.0
+    min_value: 0
+    max_value: 100000
+    description: "How many people the creator cluster can reach"
+
+  - variable_id: "creator_amplification"
+    entity_ref: "entity_creator_cluster"
+    type: FLOAT
+    default_value: 315.0
+    min_value: 0
+    max_value: 100000
+    description: "Amplification created by high-reach accounts"
+
+  - variable_id: "news_feed_exposure"
+    entity_ref: "entity_news_community"
+    type: FLOAT
+    default_value: 252.0
+    min_value: 0
+    max_value: 100000
+    description: "How much the news community sees the claim"
+
+  - variable_id: "news_attention"
+    entity_ref: "entity_news_community"
+    type: FLOAT
+    default_value: 138.6
+    min_value: 0
+    max_value: 100000
+    description: "How strongly the news community pays attention"
+
+  - variable_id: "news_reshare_rate"
+    entity_ref: "entity_news_community"
+    type: FLOAT
+    default_value: 48.51
+    min_value: 0
+    max_value: 100000
+    description: "How much the news community reshares"
+
+  - variable_id: "news_report_volume"
+    entity_ref: "entity_news_community"
+    type: FLOAT
+    default_value: 4.851
+    min_value: 0
+    max_value: 100000
+    description: "How many reports are produced by the news community"
+
+  - variable_id: "news_moderation_pressure"
+    entity_ref: "entity_news_community"
+    type: FLOAT
+    default_value: 5.8212
+    min_value: 0
+    max_value: 100000
+    description: "Moderation pressure caused by news-community reports"
+
+  - variable_id: "news_risk_index"
+    entity_ref: "entity_news_community"
+    type: FLOAT
+    default_value: 4.3659
+    min_value: 0
+    max_value: 100000
+    description: "Risk score for the news-community spread path"
+
+  - variable_id: "fan_feed_exposure"
+    entity_ref: "entity_fan_community"
+    type: FLOAT
+    default_value: 362.25
+    min_value: 0
+    max_value: 100000
+    description: "How much the fan community sees the claim"
+
+  - variable_id: "fan_attention"
+    entity_ref: "entity_fan_community"
+    type: FLOAT
+    default_value: 253.575
+    min_value: 0
+    max_value: 100000
+    description: "How strongly the fan community pays attention"
+
+  - variable_id: "fan_reshare_rate"
+    entity_ref: "entity_fan_community"
+    type: FLOAT
+    default_value: 164.82375
+    min_value: 0
+    max_value: 100000
+    description: "How much the fan community reshares"
+
+  - variable_id: "fan_report_volume"
+    entity_ref: "entity_fan_community"
+    type: FLOAT
+    default_value: 6.59295
+    min_value: 0
+    max_value: 100000
+    description: "How many reports are produced by the fan community"
+
+  - variable_id: "fan_moderation_pressure"
+    entity_ref: "entity_fan_community"
+    type: FLOAT
+    default_value: 5.27436
+    min_value: 0
+    max_value: 100000
+    description: "Moderation pressure caused by fan-community reports"
+
+  - variable_id: "fan_risk_index"
+    entity_ref: "entity_fan_community"
+    type: FLOAT
+    default_value: 4.746924
+    min_value: 0
+    max_value: 100000
+    description: "Risk score for the fan-community spread path"
+
+  - variable_id: "skeptic_feed_exposure"
+    entity_ref: "entity_skeptic_community"
+    type: FLOAT
+    default_value: 141.75
+    min_value: 0
+    max_value: 100000
+    description: "How much the skeptic community sees the claim"
+
+  - variable_id: "skeptic_attention"
+    entity_ref: "entity_skeptic_community"
+    type: FLOAT
+    default_value: 70.875
+    min_value: 0
+    max_value: 100000
+    description: "How strongly the skeptic community pays attention"
+
+  - variable_id: "skeptic_reshare_rate"
+    entity_ref: "entity_skeptic_community"
+    type: FLOAT
+    default_value: 10.63125
+    min_value: 0
+    max_value: 100000
+    description: "How much the skeptic community reshares"
+
+  - variable_id: "skeptic_report_volume"
+    entity_ref: "entity_skeptic_community"
+    type: FLOAT
+    default_value: 5.315625
+    min_value: 0
+    max_value: 100000
+    description: "How many reports are produced by the skeptic community"
+
+  - variable_id: "skeptic_moderation_pressure"
+    entity_ref: "entity_skeptic_community"
+    type: FLOAT
+    default_value: 7.441875
+    min_value: 0
+    max_value: 100000
+    description: "Moderation pressure caused by skeptic-community reports"
+
+  - variable_id: "skeptic_risk_index"
+    entity_ref: "entity_skeptic_community"
+    type: FLOAT
+    default_value: 2.97675
+    min_value: 0
+    max_value: 100000
+    description: "Risk score for the skeptic-community spread path"
+
+  - variable_id: "moderation_staffing_level"
+    entity_ref: "entity_moderation"
+    type: FLOAT
+    default_value: 300.0
+    min_value: 0
+    max_value: 100000
+    description: "Available moderation and review capacity"
+
+  - variable_id: "moderation_response_level"
+    entity_ref: "entity_moderation"
+    type: FLOAT
+    default_value: 210.0
+    min_value: 0
+    max_value: 100000
+    description: "How much moderation response is applied"
+
+  - variable_id: "fact_check_visibility"
+    entity_ref: "entity_moderation"
+    type: FLOAT
+    default_value: 126.0
+    min_value: 0
+    max_value: 100000
+    description: "Visibility of fact-checking or correction material"
+
+  - variable_id: "public_correction_reach"
+    entity_ref: "entity_moderation"
+    type: FLOAT
+    default_value: 94.5
+    min_value: 0
+    max_value: 100000
+    description: "How far corrections reach across the platform"
+
+  - variable_id: "trust_recovery_signal"
+    entity_ref: "entity_moderation"
+    type: FLOAT
+    default_value: 66.15
+    min_value: 0
+    max_value: 100000
+    description: "A rough signal for recovery after moderation response"
+
+dependency_edges:
+  - edge_id: "edge_platform_boost_to_seed_visibility"
+    source_variable: "platform_algorithm_boost"
+    target_variable: "seed_post_visibility"
+    propagation_function_id: "linear_scale"
+    weight: 1.0
+    metadata:
+      meaning: "Platform promotion increases original post visibility"
+
+  - edge_id: "edge_seed_visibility_to_creator_reach"
+    source_variable: "seed_post_visibility"
+    target_variable: "creator_reach"
+    propagation_function_id: "linear_scale"
+    weight: 0.7
+    metadata:
+      meaning: "Visible posts are noticed by high-reach accounts"
+
+  - edge_id: "edge_creator_reach_to_amplification"
+    source_variable: "creator_reach"
+    target_variable: "creator_amplification"
+    propagation_function_id: "linear_scale"
+    weight: 0.75
+    metadata:
+      meaning: "Creator reach turns into broader amplification"
+
+  - edge_id: "edge_amplification_to_news_exposure"
+    source_variable: "creator_amplification"
+    target_variable: "news_feed_exposure"
+    propagation_function_id: "linear_scale"
+    weight: 0.8
+    metadata:
+      meaning: "News community sees the amplified claim"
+
+  - edge_id: "edge_news_exposure_to_attention"
+    source_variable: "news_feed_exposure"
+    target_variable: "news_attention"
+    propagation_function_id: "linear_scale"
+    weight: 0.55
+    metadata:
+      meaning: "Exposure becomes attention"
+
+  - edge_id: "edge_news_attention_to_reshare"
+    source_variable: "news_attention"
+    target_variable: "news_reshare_rate"
+    propagation_function_id: "linear_scale"
+    weight: 0.35
+    metadata:
+      meaning: "Attention becomes resharing"
+
+  - edge_id: "edge_news_reshare_to_reports"
+    source_variable: "news_reshare_rate"
+    target_variable: "news_report_volume"
+    propagation_function_id: "linear_scale"
+    weight: 0.1
+    metadata:
+      meaning: "Some reshared posts get reported"
+
+  - edge_id: "edge_news_reports_to_pressure"
+    source_variable: "news_report_volume"
+    target_variable: "news_moderation_pressure"
+    propagation_function_id: "linear_scale"
+    weight: 1.2
+    metadata:
+      meaning: "Reports create moderation pressure"
+
+  - edge_id: "edge_news_pressure_to_risk"
+    source_variable: "news_moderation_pressure"
+    target_variable: "news_risk_index"
+    propagation_function_id: "linear_scale"
+    weight: 0.75
+    metadata:
+      meaning: "Moderation pressure indicates spread risk"
+
+  - edge_id: "edge_amplification_to_fan_exposure"
+    source_variable: "creator_amplification"
+    target_variable: "fan_feed_exposure"
+    propagation_function_id: "linear_scale"
+    weight: 1.15
+    metadata:
+      meaning: "Fan community sees more creator-amplified posts"
+
+  - edge_id: "edge_fan_exposure_to_attention"
+    source_variable: "fan_feed_exposure"
+    target_variable: "fan_attention"
+    propagation_function_id: "linear_scale"
+    weight: 0.7
+    metadata:
+      meaning: "Fan exposure strongly becomes attention"
+
+  - edge_id: "edge_fan_attention_to_reshare"
+    source_variable: "fan_attention"
+    target_variable: "fan_reshare_rate"
+    propagation_function_id: "linear_scale"
+    weight: 0.65
+    metadata:
+      meaning: "Fans reshare at a higher rate"
+
+  - edge_id: "edge_fan_reshare_to_reports"
+    source_variable: "fan_reshare_rate"
+    target_variable: "fan_report_volume"
+    propagation_function_id: "linear_scale"
+    weight: 0.04
+    metadata:
+      meaning: "A small share of fan activity becomes reports"
+
+  - edge_id: "edge_fan_reports_to_pressure"
+    source_variable: "fan_report_volume"
+    target_variable: "fan_moderation_pressure"
+    propagation_function_id: "linear_scale"
+    weight: 0.8
+    metadata:
+      meaning: "Fan reports create some moderation pressure"
+
+  - edge_id: "edge_fan_pressure_to_risk"
+    source_variable: "fan_moderation_pressure"
+    target_variable: "fan_risk_index"
+    propagation_function_id: "linear_scale"
+    weight: 0.9
+    metadata:
+      meaning: "Fan spread risk follows pressure"
+
+  - edge_id: "edge_amplification_to_skeptic_exposure"
+    source_variable: "creator_amplification"
+    target_variable: "skeptic_feed_exposure"
+    propagation_function_id: "linear_scale"
+    weight: 0.45
+    metadata:
+      meaning: "Skeptic community sees some of the amplified claim"
+
+  - edge_id: "edge_skeptic_exposure_to_attention"
+    source_variable: "skeptic_feed_exposure"
+    target_variable: "skeptic_attention"
+    propagation_function_id: "linear_scale"
+    weight: 0.5
+    metadata:
+      meaning: "Skeptic exposure becomes review attention"
+
+  - edge_id: "edge_skeptic_attention_to_reshare"
+    source_variable: "skeptic_attention"
+    target_variable: "skeptic_reshare_rate"
+    propagation_function_id: "linear_scale"
+    weight: 0.15
+    metadata:
+      meaning: "Skeptics reshare less often"
+
+  - edge_id: "edge_skeptic_reshare_to_reports"
+    source_variable: "skeptic_reshare_rate"
+    target_variable: "skeptic_report_volume"
+    propagation_function_id: "linear_scale"
+    weight: 0.5
+    metadata:
+      meaning: "Skeptic activity more often turns into reports"
+
+  - edge_id: "edge_skeptic_reports_to_pressure"
+    source_variable: "skeptic_report_volume"
+    target_variable: "skeptic_moderation_pressure"
+    propagation_function_id: "linear_scale"
+    weight: 1.4
+    metadata:
+      meaning: "Skeptic reports strongly create moderation pressure"
+
+  - edge_id: "edge_skeptic_pressure_to_risk"
+    source_variable: "skeptic_moderation_pressure"
+    target_variable: "skeptic_risk_index"
+    propagation_function_id: "linear_scale"
+    weight: 0.4
+    metadata:
+      meaning: "Skeptic path has lower spread risk despite reports"
+
+  - edge_id: "edge_staffing_to_response"
+    source_variable: "moderation_staffing_level"
+    target_variable: "moderation_response_level"
+    propagation_function_id: "linear_scale"
+    weight: 0.7
+    metadata:
+      meaning: "More staffing creates more response capacity"
+
+  - edge_id: "edge_response_to_fact_check"
+    source_variable: "moderation_response_level"
+    target_variable: "fact_check_visibility"
+    propagation_function_id: "linear_scale"
+    weight: 0.6
+    metadata:
+      meaning: "Moderation response makes fact-checking more visible"
+
+  - edge_id: "edge_fact_check_to_correction_reach"
+    source_variable: "fact_check_visibility"
+    target_variable: "public_correction_reach"
+    propagation_function_id: "linear_scale"
+    weight: 0.75
+    metadata:
+      meaning: "Visible fact checks reach the public"
+
+  - edge_id: "edge_correction_reach_to_trust_recovery"
+    source_variable: "public_correction_reach"
+    target_variable: "trust_recovery_signal"
+    propagation_function_id: "linear_scale"
+    weight: 0.7
+    metadata:
+      meaning: "Correction reach helps trust recovery"
+
+constraints:
+  - constraint_id: "constraint_platform_boost_range"
+    affected_variables:
+      - "platform_algorithm_boost"
+    constraint_expression: "platform_algorithm_boost >= 0 && platform_algorithm_boost <= 100000"
+    enforcement_level: REJECT
+    error_message: "Platform boost must stay inside the supported range"
+
+  - constraint_id: "constraint_creator_amplification_range"
+    affected_variables:
+      - "creator_amplification"
+    constraint_expression: "creator_amplification >= 0 && creator_amplification <= 100000"
+    enforcement_level: REJECT
+    error_message: "Creator amplification must stay inside the supported range"
+
+  - constraint_id: "constraint_news_risk_range"
+    affected_variables:
+      - "news_risk_index"
+    constraint_expression: "news_risk_index >= 0 && news_risk_index <= 100000"
+    enforcement_level: REJECT
+    error_message: "News risk index must stay inside the supported range"
+
+  - constraint_id: "constraint_fan_risk_range"
+    affected_variables:
+      - "fan_risk_index"
+    constraint_expression: "fan_risk_index >= 0 && fan_risk_index <= 100000"
+    enforcement_level: REJECT
+    error_message: "Fan risk index must stay inside the supported range"
+
+  - constraint_id: "constraint_skeptic_risk_range"
+    affected_variables:
+      - "skeptic_risk_index"
+    constraint_expression: "skeptic_risk_index >= 0 && skeptic_risk_index <= 100000"
+    enforcement_level: REJECT
+    error_message: "Skeptic risk index must stay inside the supported range"
+
+  - constraint_id: "constraint_moderation_staffing_range"
+    affected_variables:
+      - "moderation_staffing_level"
+    constraint_expression: "moderation_staffing_level >= 0 && moderation_staffing_level <= 100000"
+    enforcement_level: REJECT
+    error_message: "Moderation staffing must stay inside the supported range"
+
+events:
+  - event_id: "event_001_claim_gets_promoted"
+    event_type: SCHEDULED
+    timestamp: 1.0
+    priority: 10
+    event_payload:
+      target_variable: "platform_algorithm_boost"
+      new_value: "1800"
+    description: "The original claim gets recommended more widely"
+
+  - event_id: "event_002_creator_wave"
+    event_type: SCHEDULED
+    timestamp: 2.0
+    priority: 10
+    event_payload:
+      target_variable: "platform_algorithm_boost"
+      new_value: "3200"
+    description: "High-reach creators cause a second wave of visibility"
+
+  - event_id: "event_003_first_moderation_response"
+    event_type: SCHEDULED
+    timestamp: 3.0
+    priority: 8
+    event_payload:
+      target_variable: "moderation_staffing_level"
+      new_value: "900"
+    description: "Moderation staff begins reviewing the claim"
+
+  - event_id: "event_004_platform_downranks_claim"
+    event_type: SCHEDULED
+    timestamp: 4.0
+    priority: 10
+    event_payload:
+      target_variable: "platform_algorithm_boost"
+      new_value: "1200"
+    description: "The platform reduces recommendation strength"
+
+  - event_id: "event_005_fact_check_expands"
+    event_type: SCHEDULED
+    timestamp: 5.0
+    priority: 8
+    event_payload:
+      target_variable: "moderation_staffing_level"
+      new_value: "1400"
+    description: "Fact-checking and review capacity expands"
+
+  - event_id: "event_006_attention_fades"
+    event_type: SCHEDULED
+    timestamp: 6.0
+    priority: 10
+    event_payload:
+      target_variable: "platform_algorithm_boost"
+      new_value: "600"
+    description: "The claim receives less feed attention over time"
+
+evaluation_criteria:
+  - criterion_id: "eval_creator_amplification"
+    metric_name: "creator_amplification_final"
+    aggregation_method: FINAL
+    input_variables:
+      - "creator_amplification"
+    threshold_min: 0
+    description: "Final creator amplification level"
+
+  - criterion_id: "eval_news_risk"
+    metric_name: "news_community_risk_final"
+    aggregation_method: FINAL
+    input_variables:
+      - "news_risk_index"
+    threshold_min: 0
+    description: "Final risk on the news-community path"
+
+  - criterion_id: "eval_fan_risk"
+    metric_name: "fan_community_risk_final"
+    aggregation_method: FINAL
+    input_variables:
+      - "fan_risk_index"
+    threshold_min: 0
+    description: "Final risk on the fan-community path"
+
+  - criterion_id: "eval_skeptic_risk"
+    metric_name: "skeptic_community_risk_final"
+    aggregation_method: FINAL
+    input_variables:
+      - "skeptic_risk_index"
+    threshold_min: 0
+    description: "Final risk on the skeptic-community path"
+
+  - criterion_id: "eval_trust_recovery"
+    metric_name: "trust_recovery_signal_final"
+    aggregation_method: FINAL
+    input_variables:
+      - "trust_recovery_signal"
+    threshold_min: 0
+    description: "Final trust recovery signal from moderation response"
+
+metadata:
+  author: "NoisiaX Team"
+  created_date: "2026-05-04"
+  modified_date: "2026-05-04"
+  version: "1.0.0"
+  custom_fields:
+    scenario_kind: "real_world_style"
+    subject: "internet_information_spread"
+    modeling_level: "community_groups_not_individual_people"

@@ -2,6 +2,7 @@
 #include "noisiax/experiment/experiment.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
@@ -35,9 +36,19 @@ fs::path scenario_path(const std::string& filename) {
         return local;
     }
 
+    const fs::path ncore_local = fs::path("ncore") / "scenarios" / filename;
+    if (fs::exists(ncore_local)) {
+        return ncore_local;
+    }
+
     const fs::path parent = fs::path("..") / "scenarios" / filename;
     if (fs::exists(parent)) {
         return parent;
+    }
+
+    const fs::path ncore_parent = fs::path("..") / "ncore" / "scenarios" / filename;
+    if (fs::exists(ncore_parent)) {
+        return ncore_parent;
     }
 
     throw std::runtime_error("Scenario fixture not found: " + filename);
@@ -861,10 +872,10 @@ void test_v4_experiment_determinism_and_aggregation() {
     def.metrics.push_back(metric);
 
     noisiax::experiment::ExperimentOptions options_a;
-    options_a.output_dir = "test_output_v4/exp_det_a";
+    options_a.output_dir = "ncore/test_output_v4/exp_det_a";
 
     noisiax::experiment::ExperimentOptions options_b;
-    options_b.output_dir = "test_output_v4/exp_det_b";
+    options_b.output_dir = "ncore/test_output_v4/exp_det_b";
 
     const auto a = noisiax::experiment::run_experiment(def, options_a);
     const auto b = noisiax::experiment::run_experiment(def, options_b);
@@ -898,11 +909,11 @@ void test_v4_experiment_seed_change_changes_output() {
     };
 
     noisiax::experiment::ExperimentOptions options_a;
-    options_a.output_dir = "test_output_v4/exp_seed_1";
+    options_a.output_dir = "ncore/test_output_v4/exp_seed_1";
     const auto a = noisiax::experiment::run_experiment(make_def(1), options_a);
 
     noisiax::experiment::ExperimentOptions options_b;
-    options_b.output_dir = "test_output_v4/exp_seed_2";
+    options_b.output_dir = "ncore/test_output_v4/exp_seed_2";
     const auto b = noisiax::experiment::run_experiment(make_def(2), options_b);
 
     expect_true(!a.runs.empty() && !b.runs.empty(), "v4 experiment should produce at least one run");
@@ -946,7 +957,7 @@ void test_v4_experiment_failed_run_reporting_and_fail_fast() {
     def.overlays.push_back(std::move(overlay));
 
     noisiax::experiment::ExperimentOptions options;
-    options.output_dir = "test_output_v4/exp_invalid_overlay_nonfailfast";
+    options.output_dir = "ncore/test_output_v4/exp_invalid_overlay_nonfailfast";
     const auto result = noisiax::experiment::run_experiment(def, options);
 
     expect_true(result.runs.size() == 2, "v4 experiment should continue after failed runs when fail_fast=false");
@@ -959,7 +970,7 @@ void test_v4_experiment_failed_run_reporting_and_fail_fast() {
     ff.experiment_id = "test_v4_invalid_overlay_failfast";
     ff.fail_fast = true;
     noisiax::experiment::ExperimentOptions options_ff;
-    options_ff.output_dir = "test_output_v4/exp_invalid_overlay_failfast";
+    options_ff.output_dir = "ncore/test_output_v4/exp_invalid_overlay_failfast";
 
     bool threw = false;
     try {
@@ -985,7 +996,7 @@ void test_v4_experiment_rejects_invalid_override_targets() {
         def.global_overrides.push_back(bad_ptr);
 
         noisiax::experiment::ExperimentOptions options;
-        options.output_dir = "test_output_v4/exp_invalid_override_ptr";
+        options.output_dir = "ncore/test_output_v4/exp_invalid_override_ptr";
 
         const auto result = noisiax::experiment::run_experiment(def, options);
         expect_true(result.runs.size() == 1, "v4 experiment should produce one run for invalid override test");
@@ -1017,7 +1028,7 @@ void test_v4_experiment_rejects_invalid_override_targets() {
         def.global_overrides.push_back(bad_tf);
 
         noisiax::experiment::ExperimentOptions options;
-        options.output_dir = "test_output_v4/exp_invalid_override_typed_field";
+        options.output_dir = "ncore/test_output_v4/exp_invalid_override_typed_field";
 
         const auto result = noisiax::experiment::run_experiment(def, options);
         expect_true(result.runs.size() == 1, "v4 experiment should produce one run for invalid typed_field override test");
@@ -1030,6 +1041,104 @@ void test_v4_experiment_rejects_invalid_override_targets() {
             }
         }
     }
+}
+
+void test_v5_extension_custom_block_resolve_and_compile() {
+    const auto path = scenario_path("v5_acme_market_authoring.yaml").string();
+    const auto resolved = noisiax::experiment::resolve_scenario(path);
+
+    expect_true(resolved.canonical_yaml.find("\nacme.market:") == std::string::npos,
+                "v5 resolve should lower the acme.market authoring block");
+    expect_true(resolved.canonical_yaml.find("extensions:") == std::string::npos,
+                "v5 resolve should remove extensions stanza from canonical output");
+
+    bool threw = false;
+    noisiax::compiler::CompiledScenario compiled;
+    try {
+        compiled = noisiax::compile_scenario(resolved.scenario);
+    } catch (...) {
+        threw = true;
+    }
+    expect_true(!threw, "v5 resolved scenario should compile");
+
+    bool has_edge = false;
+    for (const auto& edge : compiled.dependency_edges) {
+        if (edge.propagation_function_id == "acme.market::bid_boost") {
+            has_edge = true;
+            break;
+        }
+    }
+    expect_true(has_edge, "v5 acme.market transform should emit an edge using acme.market::bid_boost");
+}
+
+void test_v5_extension_expression_function_fixture() {
+    const auto path = scenario_path("v5_acme_market_expr.yaml").string();
+    const auto resolved = noisiax::experiment::resolve_scenario(path);
+    const auto compiled = noisiax::compile_scenario(resolved.scenario);
+    const auto result = noisiax::run_scenario_detailed(compiled, {});
+
+    expect_true(result.report.success, "v5 acme.market expression fixture should run successfully");
+    expect_true(result.typed_final_state.has_value(), "v5 acme.market expression fixture should emit typed_final_state");
+    if (!result.typed_final_state.has_value()) {
+        return;
+    }
+
+    std::optional<double> value;
+    for (const auto& ent : result.typed_final_state->entities) {
+        if (ent.entity_id != "n1") continue;
+        for (const auto& comp : ent.components) {
+            if (comp.component_type_id != "Sample") continue;
+            const auto it = comp.fields.find("value");
+            if (it == comp.fields.end()) continue;
+            if (const auto* v = std::get_if<double>(&it->second)) {
+                value = *v;
+            } else if (const auto* i = std::get_if<int64_t>(&it->second)) {
+                value = static_cast<double>(*i);
+            }
+        }
+    }
+
+    expect_true(value.has_value(), "v5 acme.market expression fixture should set Sample.value");
+    if (value.has_value()) {
+        expect_true(std::abs(*value - 13.0) < 1e-9, "v5 acme.market bid_price_v2 result should be 13.0");
+    }
+}
+
+void test_v5_extension_metric_kind_in_experiment() {
+    noisiax::experiment::ExperimentOptions options_a;
+    options_a.output_dir = "test_output_v5/exp_metric_a";
+
+    noisiax::experiment::ExperimentOptions options_b;
+    options_b.output_dir = "test_output_v5/exp_metric_b";
+
+    const auto a = noisiax::experiment::run_experiment(
+        scenario_path("v5_experiment_acme_metric.yaml").string(),
+        options_a);
+    const auto b = noisiax::experiment::run_experiment(
+        scenario_path("v5_experiment_acme_metric.yaml").string(),
+        options_b);
+
+    expect_true(!a.runs.empty() && !b.runs.empty(), "v5 experiment should produce runs");
+    if (a.runs.empty() || b.runs.empty()) {
+        return;
+    }
+
+    const auto it_a = a.runs.front().metrics.find("scaled_value");
+    const auto it_b = b.runs.front().metrics.find("scaled_value");
+    expect_true(it_a != a.runs.front().metrics.end(), "v5 experiment should record scaled_value metric");
+    expect_true(it_b != b.runs.front().metrics.end(), "v5 experiment should record scaled_value metric");
+    if (it_a == a.runs.front().metrics.end() || it_b == b.runs.front().metrics.end()) {
+        return;
+    }
+
+    const auto v_a = parse_double(it_a->second);
+    const auto v_b = parse_double(it_b->second);
+    expect_true(v_a.has_value() && v_b.has_value(), "v5 extension metric should be parseable as a double");
+    if (!v_a.has_value() || !v_b.has_value()) {
+        return;
+    }
+    expect_true(std::abs(v_a.value() - 26.0) < 1e-9, "v5 extension metric should return 26.0");
+    expect_true(std::abs(v_b.value() - 26.0) < 1e-9, "v5 extension metric should return 26.0 deterministically");
 }
 
 }  // namespace
@@ -1069,6 +1178,9 @@ int main() {
     test_v4_experiment_seed_change_changes_output();
     test_v4_experiment_failed_run_reporting_and_fail_fast();
     test_v4_experiment_rejects_invalid_override_targets();
+    test_v5_extension_custom_block_resolve_and_compile();
+    test_v5_extension_expression_function_fixture();
+    test_v5_extension_metric_kind_in_experiment();
 
     if (failures == 0) {
         std::cout << "All tests passed\n";

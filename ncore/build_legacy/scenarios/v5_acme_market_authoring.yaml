@@ -1,0 +1,15 @@
+scenario_id: "v5_acme_market_authoring"
+schema_version: "5.0.0"
+master_seed: 1
+goal_statement: "v5 extension fixture: lower acme.market custom authoring block into a strict core scenario."
+
+extensions:
+  - id: "acme.market"
+    version: "1.2.0"
+    compatibility: ">=1.2,<2.0"
+
+acme.market:
+  demo:
+    base: 10.0
+    multiplier: 2.0
+

@@ -27,6 +27,9 @@ target_sources(noisiax
     src/engine/typed_runtime.cpp
     src/experiment/scenario_resolver.cpp
     src/experiment/experiment_runner.cpp
+    src/extensions/acme_market_extension.cpp
+    src/extensions/civic_resilience_extension.cpp
+    src/extensions/default_registry.cpp
     src/serialization/yaml_serializer.cpp
     src/validation/scenario_validator.cpp
     src/compiler/scenario_compiler.cpp
@@ -155,4 +158,4 @@ if(BUILD_TESTING)
 endif()
 
 # Scenario fixtures for testing
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/scenarios DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/ncore/scenarios DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

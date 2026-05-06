@@ -1,0 +1,1913 @@
+# NoisiaX Large Stress Scenario
+# Generated fixture: 120 numeric variables, 119 dependency edges, 8 scheduled events.
+
+scenario_id: "large_chain_stress_001"
+schema_version: "1.0.0"
+master_seed: 20260504
+
+goal_statement: |
+  Stress-test NoisiaX with a larger deterministic dependency chain.
+  The first variable receives scheduled changes, and the effect propagates
+  through many downstream variables while constraints keep values non-negative.
+
+assumptions:
+  - assumption_id: "assume_large_001"
+    category: "runtime_stress"
+    description: "All variables are numeric and safe for v1 propagation."
+    rationale: "NoisiaX v1 dependency propagation is numeric-focused."
+    confidence_level: REJECT
+  - assumption_id: "assume_large_002"
+    category: "determinism"
+    description: "The same seed and event stream should produce the same final state."
+    rationale: "This scenario is intended for reproducibility checks."
+    confidence_level: WARN
+
+entities:
+  - entity_id: "entity_segment_00"
+    entity_type: "stress_segment"
+    description: "Segment 0 containing a block of stress-test variables"
+    attributes:
+      segment_index: "0"
+      variable_count: "10"
+  - entity_id: "entity_segment_01"
+    entity_type: "stress_segment"
+    description: "Segment 1 containing a block of stress-test variables"
+    attributes:
+      segment_index: "1"
+      variable_count: "10"
+  - entity_id: "entity_segment_02"
+    entity_type: "stress_segment"
+    description: "Segment 2 containing a block of stress-test variables"
+    attributes:
+      segment_index: "2"
+      variable_count: "10"
+  - entity_id: "entity_segment_03"
+    entity_type: "stress_segment"
+    description: "Segment 3 containing a block of stress-test variables"
+    attributes:
+      segment_index: "3"
+      variable_count: "10"
+  - entity_id: "entity_segment_04"
+    entity_type: "stress_segment"
+    description: "Segment 4 containing a block of stress-test variables"
+    attributes:
+      segment_index: "4"
+      variable_count: "10"
+  - entity_id: "entity_segment_05"
+    entity_type: "stress_segment"
+    description: "Segment 5 containing a block of stress-test variables"
+    attributes:
+      segment_index: "5"
+      variable_count: "10"
+  - entity_id: "entity_segment_06"
+    entity_type: "stress_segment"
+    description: "Segment 6 containing a block of stress-test variables"
+    attributes:
+      segment_index: "6"
+      variable_count: "10"
+  - entity_id: "entity_segment_07"
+    entity_type: "stress_segment"
+    description: "Segment 7 containing a block of stress-test variables"
+    attributes:
+      segment_index: "7"
+      variable_count: "10"
+  - entity_id: "entity_segment_08"
+    entity_type: "stress_segment"
+    description: "Segment 8 containing a block of stress-test variables"
+    attributes:
+      segment_index: "8"
+      variable_count: "10"
+  - entity_id: "entity_segment_09"
+    entity_type: "stress_segment"
+    description: "Segment 9 containing a block of stress-test variables"
+    attributes:
+      segment_index: "9"
+      variable_count: "10"
+  - entity_id: "entity_segment_10"
+    entity_type: "stress_segment"
+    description: "Segment 10 containing a block of stress-test variables"
+    attributes:
+      segment_index: "10"
+      variable_count: "10"
+  - entity_id: "entity_segment_11"
+    entity_type: "stress_segment"
+    description: "Segment 11 containing a block of stress-test variables"
+    attributes:
+      segment_index: "11"
+      variable_count: "10"
+
+variables:
+  - variable_id: "node_000"
+    entity_ref: "entity_segment_00"
+    type: FLOAT
+    default_value: 100.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 0"
+  - variable_id: "node_001"
+    entity_ref: "entity_segment_00"
+    type: FLOAT
+    default_value: 100.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 1"
+  - variable_id: "node_002"
+    entity_ref: "entity_segment_00"
+    type: FLOAT
+    default_value: 101.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 2"
+  - variable_id: "node_003"
+    entity_ref: "entity_segment_00"
+    type: FLOAT
+    default_value: 101.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 3"
+  - variable_id: "node_004"
+    entity_ref: "entity_segment_00"
+    type: FLOAT
+    default_value: 102.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 4"
+  - variable_id: "node_005"
+    entity_ref: "entity_segment_00"
+    type: FLOAT
+    default_value: 102.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 5"
+  - variable_id: "node_006"
+    entity_ref: "entity_segment_00"
+    type: FLOAT
+    default_value: 103.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 6"
+  - variable_id: "node_007"
+    entity_ref: "entity_segment_00"
+    type: FLOAT
+    default_value: 103.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 7"
+  - variable_id: "node_008"
+    entity_ref: "entity_segment_00"
+    type: FLOAT
+    default_value: 104.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 8"
+  - variable_id: "node_009"
+    entity_ref: "entity_segment_00"
+    type: FLOAT
+    default_value: 104.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 9"
+  - variable_id: "node_010"
+    entity_ref: "entity_segment_01"
+    type: FLOAT
+    default_value: 105.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 10"
+  - variable_id: "node_011"
+    entity_ref: "entity_segment_01"
+    type: FLOAT
+    default_value: 105.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 11"
+  - variable_id: "node_012"
+    entity_ref: "entity_segment_01"
+    type: FLOAT
+    default_value: 106.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 12"
+  - variable_id: "node_013"
+    entity_ref: "entity_segment_01"
+    type: FLOAT
+    default_value: 106.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 13"
+  - variable_id: "node_014"
+    entity_ref: "entity_segment_01"
+    type: FLOAT
+    default_value: 107.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 14"
+  - variable_id: "node_015"
+    entity_ref: "entity_segment_01"
+    type: FLOAT
+    default_value: 107.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 15"
+  - variable_id: "node_016"
+    entity_ref: "entity_segment_01"
+    type: FLOAT
+    default_value: 108.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 16"
+  - variable_id: "node_017"
+    entity_ref: "entity_segment_01"
+    type: FLOAT
+    default_value: 108.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 17"
+  - variable_id: "node_018"
+    entity_ref: "entity_segment_01"
+    type: FLOAT
+    default_value: 109.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 18"
+  - variable_id: "node_019"
+    entity_ref: "entity_segment_01"
+    type: FLOAT
+    default_value: 109.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 19"
+  - variable_id: "node_020"
+    entity_ref: "entity_segment_02"
+    type: FLOAT
+    default_value: 110.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 20"
+  - variable_id: "node_021"
+    entity_ref: "entity_segment_02"
+    type: FLOAT
+    default_value: 110.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 21"
+  - variable_id: "node_022"
+    entity_ref: "entity_segment_02"
+    type: FLOAT
+    default_value: 111.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 22"
+  - variable_id: "node_023"
+    entity_ref: "entity_segment_02"
+    type: FLOAT
+    default_value: 111.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 23"
+  - variable_id: "node_024"
+    entity_ref: "entity_segment_02"
+    type: FLOAT
+    default_value: 112.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 24"
+  - variable_id: "node_025"
+    entity_ref: "entity_segment_02"
+    type: FLOAT
+    default_value: 112.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 25"
+  - variable_id: "node_026"
+    entity_ref: "entity_segment_02"
+    type: FLOAT
+    default_value: 113.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 26"
+  - variable_id: "node_027"
+    entity_ref: "entity_segment_02"
+    type: FLOAT
+    default_value: 113.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 27"
+  - variable_id: "node_028"
+    entity_ref: "entity_segment_02"
+    type: FLOAT
+    default_value: 114.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 28"
+  - variable_id: "node_029"
+    entity_ref: "entity_segment_02"
+    type: FLOAT
+    default_value: 114.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 29"
+  - variable_id: "node_030"
+    entity_ref: "entity_segment_03"
+    type: FLOAT
+    default_value: 115.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 30"
+  - variable_id: "node_031"
+    entity_ref: "entity_segment_03"
+    type: FLOAT
+    default_value: 115.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 31"
+  - variable_id: "node_032"
+    entity_ref: "entity_segment_03"
+    type: FLOAT
+    default_value: 116.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 32"
+  - variable_id: "node_033"
+    entity_ref: "entity_segment_03"
+    type: FLOAT
+    default_value: 116.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 33"
+  - variable_id: "node_034"
+    entity_ref: "entity_segment_03"
+    type: FLOAT
+    default_value: 117.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 34"
+  - variable_id: "node_035"
+    entity_ref: "entity_segment_03"
+    type: FLOAT
+    default_value: 117.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 35"
+  - variable_id: "node_036"
+    entity_ref: "entity_segment_03"
+    type: FLOAT
+    default_value: 118.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 36"
+  - variable_id: "node_037"
+    entity_ref: "entity_segment_03"
+    type: FLOAT
+    default_value: 118.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 37"
+  - variable_id: "node_038"
+    entity_ref: "entity_segment_03"
+    type: FLOAT
+    default_value: 119.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 38"
+  - variable_id: "node_039"
+    entity_ref: "entity_segment_03"
+    type: FLOAT
+    default_value: 119.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 39"
+  - variable_id: "node_040"
+    entity_ref: "entity_segment_04"
+    type: FLOAT
+    default_value: 120.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 40"
+  - variable_id: "node_041"
+    entity_ref: "entity_segment_04"
+    type: FLOAT
+    default_value: 120.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 41"
+  - variable_id: "node_042"
+    entity_ref: "entity_segment_04"
+    type: FLOAT
+    default_value: 121.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 42"
+  - variable_id: "node_043"
+    entity_ref: "entity_segment_04"
+    type: FLOAT
+    default_value: 121.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 43"
+  - variable_id: "node_044"
+    entity_ref: "entity_segment_04"
+    type: FLOAT
+    default_value: 122.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 44"
+  - variable_id: "node_045"
+    entity_ref: "entity_segment_04"
+    type: FLOAT
+    default_value: 122.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 45"
+  - variable_id: "node_046"
+    entity_ref: "entity_segment_04"
+    type: FLOAT
+    default_value: 123.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 46"
+  - variable_id: "node_047"
+    entity_ref: "entity_segment_04"
+    type: FLOAT
+    default_value: 123.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 47"
+  - variable_id: "node_048"
+    entity_ref: "entity_segment_04"
+    type: FLOAT
+    default_value: 124.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 48"
+  - variable_id: "node_049"
+    entity_ref: "entity_segment_04"
+    type: FLOAT
+    default_value: 124.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 49"
+  - variable_id: "node_050"
+    entity_ref: "entity_segment_05"
+    type: FLOAT
+    default_value: 125.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 50"
+  - variable_id: "node_051"
+    entity_ref: "entity_segment_05"
+    type: FLOAT
+    default_value: 125.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 51"
+  - variable_id: "node_052"
+    entity_ref: "entity_segment_05"
+    type: FLOAT
+    default_value: 126.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 52"
+  - variable_id: "node_053"
+    entity_ref: "entity_segment_05"
+    type: FLOAT
+    default_value: 126.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 53"
+  - variable_id: "node_054"
+    entity_ref: "entity_segment_05"
+    type: FLOAT
+    default_value: 127.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 54"
+  - variable_id: "node_055"
+    entity_ref: "entity_segment_05"
+    type: FLOAT
+    default_value: 127.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 55"
+  - variable_id: "node_056"
+    entity_ref: "entity_segment_05"
+    type: FLOAT
+    default_value: 128.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 56"
+  - variable_id: "node_057"
+    entity_ref: "entity_segment_05"
+    type: FLOAT
+    default_value: 128.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 57"
+  - variable_id: "node_058"
+    entity_ref: "entity_segment_05"
+    type: FLOAT
+    default_value: 129.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 58"
+  - variable_id: "node_059"
+    entity_ref: "entity_segment_05"
+    type: FLOAT
+    default_value: 129.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 59"
+  - variable_id: "node_060"
+    entity_ref: "entity_segment_06"
+    type: FLOAT
+    default_value: 130.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 60"
+  - variable_id: "node_061"
+    entity_ref: "entity_segment_06"
+    type: FLOAT
+    default_value: 130.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 61"
+  - variable_id: "node_062"
+    entity_ref: "entity_segment_06"
+    type: FLOAT
+    default_value: 131.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 62"
+  - variable_id: "node_063"
+    entity_ref: "entity_segment_06"
+    type: FLOAT
+    default_value: 131.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 63"
+  - variable_id: "node_064"
+    entity_ref: "entity_segment_06"
+    type: FLOAT
+    default_value: 132.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 64"
+  - variable_id: "node_065"
+    entity_ref: "entity_segment_06"
+    type: FLOAT
+    default_value: 132.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 65"
+  - variable_id: "node_066"
+    entity_ref: "entity_segment_06"
+    type: FLOAT
+    default_value: 133.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 66"
+  - variable_id: "node_067"
+    entity_ref: "entity_segment_06"
+    type: FLOAT
+    default_value: 133.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 67"
+  - variable_id: "node_068"
+    entity_ref: "entity_segment_06"
+    type: FLOAT
+    default_value: 134.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 68"
+  - variable_id: "node_069"
+    entity_ref: "entity_segment_06"
+    type: FLOAT
+    default_value: 134.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 69"
+  - variable_id: "node_070"
+    entity_ref: "entity_segment_07"
+    type: FLOAT
+    default_value: 135.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 70"
+  - variable_id: "node_071"
+    entity_ref: "entity_segment_07"
+    type: FLOAT
+    default_value: 135.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 71"
+  - variable_id: "node_072"
+    entity_ref: "entity_segment_07"
+    type: FLOAT
+    default_value: 136.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 72"
+  - variable_id: "node_073"
+    entity_ref: "entity_segment_07"
+    type: FLOAT
+    default_value: 136.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 73"
+  - variable_id: "node_074"
+    entity_ref: "entity_segment_07"
+    type: FLOAT
+    default_value: 137.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 74"
+  - variable_id: "node_075"
+    entity_ref: "entity_segment_07"
+    type: FLOAT
+    default_value: 137.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 75"
+  - variable_id: "node_076"
+    entity_ref: "entity_segment_07"
+    type: FLOAT
+    default_value: 138.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 76"
+  - variable_id: "node_077"
+    entity_ref: "entity_segment_07"
+    type: FLOAT
+    default_value: 138.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 77"
+  - variable_id: "node_078"
+    entity_ref: "entity_segment_07"
+    type: FLOAT
+    default_value: 139.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 78"
+  - variable_id: "node_079"
+    entity_ref: "entity_segment_07"
+    type: FLOAT
+    default_value: 139.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 79"
+  - variable_id: "node_080"
+    entity_ref: "entity_segment_08"
+    type: FLOAT
+    default_value: 140.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 80"
+  - variable_id: "node_081"
+    entity_ref: "entity_segment_08"
+    type: FLOAT
+    default_value: 140.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 81"
+  - variable_id: "node_082"
+    entity_ref: "entity_segment_08"
+    type: FLOAT
+    default_value: 141.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 82"
+  - variable_id: "node_083"
+    entity_ref: "entity_segment_08"
+    type: FLOAT
+    default_value: 141.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 83"
+  - variable_id: "node_084"
+    entity_ref: "entity_segment_08"
+    type: FLOAT
+    default_value: 142.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 84"
+  - variable_id: "node_085"
+    entity_ref: "entity_segment_08"
+    type: FLOAT
+    default_value: 142.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 85"
+  - variable_id: "node_086"
+    entity_ref: "entity_segment_08"
+    type: FLOAT
+    default_value: 143.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 86"
+  - variable_id: "node_087"
+    entity_ref: "entity_segment_08"
+    type: FLOAT
+    default_value: 143.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 87"
+  - variable_id: "node_088"
+    entity_ref: "entity_segment_08"
+    type: FLOAT
+    default_value: 144.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 88"
+  - variable_id: "node_089"
+    entity_ref: "entity_segment_08"
+    type: FLOAT
+    default_value: 144.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 89"
+  - variable_id: "node_090"
+    entity_ref: "entity_segment_09"
+    type: FLOAT
+    default_value: 145.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 90"
+  - variable_id: "node_091"
+    entity_ref: "entity_segment_09"
+    type: FLOAT
+    default_value: 145.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 91"
+  - variable_id: "node_092"
+    entity_ref: "entity_segment_09"
+    type: FLOAT
+    default_value: 146.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 92"
+  - variable_id: "node_093"
+    entity_ref: "entity_segment_09"
+    type: FLOAT
+    default_value: 146.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 93"
+  - variable_id: "node_094"
+    entity_ref: "entity_segment_09"
+    type: FLOAT
+    default_value: 147.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 94"
+  - variable_id: "node_095"
+    entity_ref: "entity_segment_09"
+    type: FLOAT
+    default_value: 147.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 95"
+  - variable_id: "node_096"
+    entity_ref: "entity_segment_09"
+    type: FLOAT
+    default_value: 148.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 96"
+  - variable_id: "node_097"
+    entity_ref: "entity_segment_09"
+    type: FLOAT
+    default_value: 148.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 97"
+  - variable_id: "node_098"
+    entity_ref: "entity_segment_09"
+    type: FLOAT
+    default_value: 149.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 98"
+  - variable_id: "node_099"
+    entity_ref: "entity_segment_09"
+    type: FLOAT
+    default_value: 149.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 99"
+  - variable_id: "node_100"
+    entity_ref: "entity_segment_10"
+    type: FLOAT
+    default_value: 150.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 100"
+  - variable_id: "node_101"
+    entity_ref: "entity_segment_10"
+    type: FLOAT
+    default_value: 150.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 101"
+  - variable_id: "node_102"
+    entity_ref: "entity_segment_10"
+    type: FLOAT
+    default_value: 151.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 102"
+  - variable_id: "node_103"
+    entity_ref: "entity_segment_10"
+    type: FLOAT
+    default_value: 151.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 103"
+  - variable_id: "node_104"
+    entity_ref: "entity_segment_10"
+    type: FLOAT
+    default_value: 152.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 104"
+  - variable_id: "node_105"
+    entity_ref: "entity_segment_10"
+    type: FLOAT
+    default_value: 152.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 105"
+  - variable_id: "node_106"
+    entity_ref: "entity_segment_10"
+    type: FLOAT
+    default_value: 153.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 106"
+  - variable_id: "node_107"
+    entity_ref: "entity_segment_10"
+    type: FLOAT
+    default_value: 153.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 107"
+  - variable_id: "node_108"
+    entity_ref: "entity_segment_10"
+    type: FLOAT
+    default_value: 154.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 108"
+  - variable_id: "node_109"
+    entity_ref: "entity_segment_10"
+    type: FLOAT
+    default_value: 154.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 109"
+  - variable_id: "node_110"
+    entity_ref: "entity_segment_11"
+    type: FLOAT
+    default_value: 155.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 110"
+  - variable_id: "node_111"
+    entity_ref: "entity_segment_11"
+    type: FLOAT
+    default_value: 155.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 111"
+  - variable_id: "node_112"
+    entity_ref: "entity_segment_11"
+    type: FLOAT
+    default_value: 156.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 112"
+  - variable_id: "node_113"
+    entity_ref: "entity_segment_11"
+    type: FLOAT
+    default_value: 156.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 113"
+  - variable_id: "node_114"
+    entity_ref: "entity_segment_11"
+    type: FLOAT
+    default_value: 157.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 114"
+  - variable_id: "node_115"
+    entity_ref: "entity_segment_11"
+    type: FLOAT
+    default_value: 157.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 115"
+  - variable_id: "node_116"
+    entity_ref: "entity_segment_11"
+    type: FLOAT
+    default_value: 158.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 116"
+  - variable_id: "node_117"
+    entity_ref: "entity_segment_11"
+    type: FLOAT
+    default_value: 158.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 117"
+  - variable_id: "node_118"
+    entity_ref: "entity_segment_11"
+    type: FLOAT
+    default_value: 159.00
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 118"
+  - variable_id: "node_119"
+    entity_ref: "entity_segment_11"
+    type: FLOAT
+    default_value: 159.50
+    min_value: 0
+    max_value: 1000000
+    description: "Stress-chain variable 119"
+
+dependency_edges:
+  - edge_id: "edge_000_001"
+    source_variable: "node_000"
+    target_variable: "node_001"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_001_002"
+    source_variable: "node_001"
+    target_variable: "node_002"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_002_003"
+    source_variable: "node_002"
+    target_variable: "node_003"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_003_004"
+    source_variable: "node_003"
+    target_variable: "node_004"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_004_005"
+    source_variable: "node_004"
+    target_variable: "node_005"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_005_006"
+    source_variable: "node_005"
+    target_variable: "node_006"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_006_007"
+    source_variable: "node_006"
+    target_variable: "node_007"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_007_008"
+    source_variable: "node_007"
+    target_variable: "node_008"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_008_009"
+    source_variable: "node_008"
+    target_variable: "node_009"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_009_010"
+    source_variable: "node_009"
+    target_variable: "node_010"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_010_011"
+    source_variable: "node_010"
+    target_variable: "node_011"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_011_012"
+    source_variable: "node_011"
+    target_variable: "node_012"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_012_013"
+    source_variable: "node_012"
+    target_variable: "node_013"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_013_014"
+    source_variable: "node_013"
+    target_variable: "node_014"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_014_015"
+    source_variable: "node_014"
+    target_variable: "node_015"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_015_016"
+    source_variable: "node_015"
+    target_variable: "node_016"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_016_017"
+    source_variable: "node_016"
+    target_variable: "node_017"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_017_018"
+    source_variable: "node_017"
+    target_variable: "node_018"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_018_019"
+    source_variable: "node_018"
+    target_variable: "node_019"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_019_020"
+    source_variable: "node_019"
+    target_variable: "node_020"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_020_021"
+    source_variable: "node_020"
+    target_variable: "node_021"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_021_022"
+    source_variable: "node_021"
+    target_variable: "node_022"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_022_023"
+    source_variable: "node_022"
+    target_variable: "node_023"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_023_024"
+    source_variable: "node_023"
+    target_variable: "node_024"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_024_025"
+    source_variable: "node_024"
+    target_variable: "node_025"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_025_026"
+    source_variable: "node_025"
+    target_variable: "node_026"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_026_027"
+    source_variable: "node_026"
+    target_variable: "node_027"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_027_028"
+    source_variable: "node_027"
+    target_variable: "node_028"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_028_029"
+    source_variable: "node_028"
+    target_variable: "node_029"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_029_030"
+    source_variable: "node_029"
+    target_variable: "node_030"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_030_031"
+    source_variable: "node_030"
+    target_variable: "node_031"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_031_032"
+    source_variable: "node_031"
+    target_variable: "node_032"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_032_033"
+    source_variable: "node_032"
+    target_variable: "node_033"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_033_034"
+    source_variable: "node_033"
+    target_variable: "node_034"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_034_035"
+    source_variable: "node_034"
+    target_variable: "node_035"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_035_036"
+    source_variable: "node_035"
+    target_variable: "node_036"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_036_037"
+    source_variable: "node_036"
+    target_variable: "node_037"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_037_038"
+    source_variable: "node_037"
+    target_variable: "node_038"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_038_039"
+    source_variable: "node_038"
+    target_variable: "node_039"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_039_040"
+    source_variable: "node_039"
+    target_variable: "node_040"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_040_041"
+    source_variable: "node_040"
+    target_variable: "node_041"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_041_042"
+    source_variable: "node_041"
+    target_variable: "node_042"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_042_043"
+    source_variable: "node_042"
+    target_variable: "node_043"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_043_044"
+    source_variable: "node_043"
+    target_variable: "node_044"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_044_045"
+    source_variable: "node_044"
+    target_variable: "node_045"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_045_046"
+    source_variable: "node_045"
+    target_variable: "node_046"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_046_047"
+    source_variable: "node_046"
+    target_variable: "node_047"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_047_048"
+    source_variable: "node_047"
+    target_variable: "node_048"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_048_049"
+    source_variable: "node_048"
+    target_variable: "node_049"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_049_050"
+    source_variable: "node_049"
+    target_variable: "node_050"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_050_051"
+    source_variable: "node_050"
+    target_variable: "node_051"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_051_052"
+    source_variable: "node_051"
+    target_variable: "node_052"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_052_053"
+    source_variable: "node_052"
+    target_variable: "node_053"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_053_054"
+    source_variable: "node_053"
+    target_variable: "node_054"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_054_055"
+    source_variable: "node_054"
+    target_variable: "node_055"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_055_056"
+    source_variable: "node_055"
+    target_variable: "node_056"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_056_057"
+    source_variable: "node_056"
+    target_variable: "node_057"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_057_058"
+    source_variable: "node_057"
+    target_variable: "node_058"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_058_059"
+    source_variable: "node_058"
+    target_variable: "node_059"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_059_060"
+    source_variable: "node_059"
+    target_variable: "node_060"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_060_061"
+    source_variable: "node_060"
+    target_variable: "node_061"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_061_062"
+    source_variable: "node_061"
+    target_variable: "node_062"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_062_063"
+    source_variable: "node_062"
+    target_variable: "node_063"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_063_064"
+    source_variable: "node_063"
+    target_variable: "node_064"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_064_065"
+    source_variable: "node_064"
+    target_variable: "node_065"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_065_066"
+    source_variable: "node_065"
+    target_variable: "node_066"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_066_067"
+    source_variable: "node_066"
+    target_variable: "node_067"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_067_068"
+    source_variable: "node_067"
+    target_variable: "node_068"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_068_069"
+    source_variable: "node_068"
+    target_variable: "node_069"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_069_070"
+    source_variable: "node_069"
+    target_variable: "node_070"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_070_071"
+    source_variable: "node_070"
+    target_variable: "node_071"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_071_072"
+    source_variable: "node_071"
+    target_variable: "node_072"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_072_073"
+    source_variable: "node_072"
+    target_variable: "node_073"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_073_074"
+    source_variable: "node_073"
+    target_variable: "node_074"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_074_075"
+    source_variable: "node_074"
+    target_variable: "node_075"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_075_076"
+    source_variable: "node_075"
+    target_variable: "node_076"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_076_077"
+    source_variable: "node_076"
+    target_variable: "node_077"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_077_078"
+    source_variable: "node_077"
+    target_variable: "node_078"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_078_079"
+    source_variable: "node_078"
+    target_variable: "node_079"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_079_080"
+    source_variable: "node_079"
+    target_variable: "node_080"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_080_081"
+    source_variable: "node_080"
+    target_variable: "node_081"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_081_082"
+    source_variable: "node_081"
+    target_variable: "node_082"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_082_083"
+    source_variable: "node_082"
+    target_variable: "node_083"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_083_084"
+    source_variable: "node_083"
+    target_variable: "node_084"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_084_085"
+    source_variable: "node_084"
+    target_variable: "node_085"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_085_086"
+    source_variable: "node_085"
+    target_variable: "node_086"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_086_087"
+    source_variable: "node_086"
+    target_variable: "node_087"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_087_088"
+    source_variable: "node_087"
+    target_variable: "node_088"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_088_089"
+    source_variable: "node_088"
+    target_variable: "node_089"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_089_090"
+    source_variable: "node_089"
+    target_variable: "node_090"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_090_091"
+    source_variable: "node_090"
+    target_variable: "node_091"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_091_092"
+    source_variable: "node_091"
+    target_variable: "node_092"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_092_093"
+    source_variable: "node_092"
+    target_variable: "node_093"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_093_094"
+    source_variable: "node_093"
+    target_variable: "node_094"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_094_095"
+    source_variable: "node_094"
+    target_variable: "node_095"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_095_096"
+    source_variable: "node_095"
+    target_variable: "node_096"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_096_097"
+    source_variable: "node_096"
+    target_variable: "node_097"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_097_098"
+    source_variable: "node_097"
+    target_variable: "node_098"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_098_099"
+    source_variable: "node_098"
+    target_variable: "node_099"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_099_100"
+    source_variable: "node_099"
+    target_variable: "node_100"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_100_101"
+    source_variable: "node_100"
+    target_variable: "node_101"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_101_102"
+    source_variable: "node_101"
+    target_variable: "node_102"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_102_103"
+    source_variable: "node_102"
+    target_variable: "node_103"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_103_104"
+    source_variable: "node_103"
+    target_variable: "node_104"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_104_105"
+    source_variable: "node_104"
+    target_variable: "node_105"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_105_106"
+    source_variable: "node_105"
+    target_variable: "node_106"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_106_107"
+    source_variable: "node_106"
+    target_variable: "node_107"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_107_108"
+    source_variable: "node_107"
+    target_variable: "node_108"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_108_109"
+    source_variable: "node_108"
+    target_variable: "node_109"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_109_110"
+    source_variable: "node_109"
+    target_variable: "node_110"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_110_111"
+    source_variable: "node_110"
+    target_variable: "node_111"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_111_112"
+    source_variable: "node_111"
+    target_variable: "node_112"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_112_113"
+    source_variable: "node_112"
+    target_variable: "node_113"
+    propagation_function_id: "linear_scale"
+    weight: 1.001
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_113_114"
+    source_variable: "node_113"
+    target_variable: "node_114"
+    propagation_function_id: "linear_scale"
+    weight: 1.002
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_114_115"
+    source_variable: "node_114"
+    target_variable: "node_115"
+    propagation_function_id: "linear_scale"
+    weight: 1.003
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_115_116"
+    source_variable: "node_115"
+    target_variable: "node_116"
+    propagation_function_id: "linear_scale"
+    weight: 1.004
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_116_117"
+    source_variable: "node_116"
+    target_variable: "node_117"
+    propagation_function_id: "linear_scale"
+    weight: 1.005
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_117_118"
+    source_variable: "node_117"
+    target_variable: "node_118"
+    propagation_function_id: "linear_scale"
+    weight: 1.006
+    metadata:
+      purpose: "large_chain_propagation"
+  - edge_id: "edge_118_119"
+    source_variable: "node_118"
+    target_variable: "node_119"
+    propagation_function_id: "linear_scale"
+    weight: 1.007
+    metadata:
+      purpose: "large_chain_propagation"
+
+constraints:
+  - constraint_id: "constraint_root_non_negative"
+    affected_variables:
+      - "node_000"
+    constraint_expression: "node_000 >= 0"
+    enforcement_level: REJECT
+    error_message: "node_000 must stay non-negative"
+  - constraint_id: "constraint_quarter_non_negative"
+    affected_variables:
+      - "node_030"
+    constraint_expression: "node_030 >= 0"
+    enforcement_level: REJECT
+    error_message: "node_030 must stay non-negative"
+  - constraint_id: "constraint_middle_non_negative"
+    affected_variables:
+      - "node_060"
+    constraint_expression: "node_060 >= 0"
+    enforcement_level: REJECT
+    error_message: "node_060 must stay non-negative"
+  - constraint_id: "constraint_late_non_negative"
+    affected_variables:
+      - "node_090"
+    constraint_expression: "node_090 >= 0"
+    enforcement_level: REJECT
+    error_message: "node_090 must stay non-negative"
+  - constraint_id: "constraint_tail_non_negative"
+    affected_variables:
+      - "node_119"
+    constraint_expression: "node_119 >= 0"
+    enforcement_level: REJECT
+    error_message: "node_119 must stay non-negative"
+
+events:
+  - event_id: "event_root_update_01"
+    event_type: SCHEDULED
+    timestamp: 1.0
+    priority: 10
+    event_payload:
+      target_variable: "node_000"
+      new_value: "125"
+    description: "Set root variable to 125 at time 1"
+  - event_id: "event_root_update_02"
+    event_type: SCHEDULED
+    timestamp: 2.0
+    priority: 9
+    event_payload:
+      target_variable: "node_000"
+      new_value: "150"
+    description: "Set root variable to 150 at time 2"
+  - event_id: "event_root_update_03"
+    event_type: SCHEDULED
+    timestamp: 3.0
+    priority: 8
+    event_payload:
+      target_variable: "node_000"
+      new_value: "175"
+    description: "Set root variable to 175 at time 3"
+  - event_id: "event_root_update_04"
+    event_type: SCHEDULED
+    timestamp: 4.0
+    priority: 7
+    event_payload:
+      target_variable: "node_000"
+      new_value: "200"
+    description: "Set root variable to 200 at time 4"
+  - event_id: "event_root_update_05"
+    event_type: SCHEDULED
+    timestamp: 5.0
+    priority: 6
+    event_payload:
+      target_variable: "node_000"
+      new_value: "225"
+    description: "Set root variable to 225 at time 5"
+  - event_id: "event_root_update_06"
+    event_type: SCHEDULED
+    timestamp: 6.0
+    priority: 5
+    event_payload:
+      target_variable: "node_000"
+      new_value: "250"
+    description: "Set root variable to 250 at time 6"
+  - event_id: "event_root_update_07"
+    event_type: SCHEDULED
+    timestamp: 7.0
+    priority: 4
+    event_payload:
+      target_variable: "node_000"
+      new_value: "275"
+    description: "Set root variable to 275 at time 7"
+  - event_id: "event_root_update_08"
+    event_type: SCHEDULED
+    timestamp: 8.0
+    priority: 3
+    event_payload:
+      target_variable: "node_000"
+      new_value: "300"
+    description: "Set root variable to 300 at time 8"
+
+evaluation_criteria:
+  - criterion_id: "eval_quarter_chain_value"
+    metric_name: "quarter_chain_value"
+    aggregation_method: FINAL
+    input_variables:
+      - "node_030"
+    threshold_min: 0
+    description: "Final value check for node_030"
+  - criterion_id: "eval_middle_chain_value"
+    metric_name: "middle_chain_value"
+    aggregation_method: FINAL
+    input_variables:
+      - "node_060"
+    threshold_min: 0
+    description: "Final value check for node_060"
+  - criterion_id: "eval_late_chain_value"
+    metric_name: "late_chain_value"
+    aggregation_method: FINAL
+    input_variables:
+      - "node_090"
+    threshold_min: 0
+    description: "Final value check for node_090"
+  - criterion_id: "eval_tail_chain_value"
+    metric_name: "tail_chain_value"
+    aggregation_method: FINAL
+    input_variables:
+      - "node_119"
+    threshold_min: 0
+    description: "Final value check for node_119"
+
+metadata:
+  author: "NoisiaX Team"
+  created_date: "2026-05-04"
+  modified_date: "2026-05-04"
+  version: "1.0.0"
+  custom_fields:
+    fixture_type: "large_stress"
+    variable_count: "120"
+    dependency_count: "119"
+    event_count: "8"

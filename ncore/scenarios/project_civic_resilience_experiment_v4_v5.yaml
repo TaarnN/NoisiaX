@@ -1,0 +1,152 @@
+experiment_id: "project_civic_resilience_v4_v5_experiment"
+base_scenario: "project_civic_resilience_v5.yaml"
+fail_fast: false
+write_run_details: true
+
+seed_plan:
+  seeds: [20260506, 20260507, 20260508, 20260509]
+
+overlays:
+  - overlay_id: "sample_r017_initial_stress"
+    sampler: "uniform_float"
+    target:
+      typed_field:
+        entity_id: "civic__r017"
+        component_type_id: "civic__CivicState"
+        field_name: "stress"
+    params: { min: 0.18, max: 0.72 }
+  - overlay_id: "sample_facility_05_reliability"
+    sampler: "uniform_float"
+    target:
+      typed_field:
+        entity_id: "infra__facility_05"
+        component_type_id: "infra__FacilityStatus"
+        field_name: "reliability"
+    params: { min: 0.52, max: 0.93 }
+
+variants:
+  - variant_id: "baseline"
+  - variant_id: "prepositioned_supplies"
+    overrides:
+      - override_id: "boost_facility_06_stock"
+        op: "replace"
+        target:
+          typed_field:
+            entity_id: "infra__facility_06"
+            component_type_id: "infra__FacilityStatus"
+            field_name: "stock"
+        value: 0.950
+      - override_id: "boost_r024_food"
+        op: "replace"
+        target:
+          typed_field:
+            entity_id: "civic__r024"
+            component_type_id: "civic__CivicState"
+            field_name: "food"
+        value: 0.960
+      - override_id: "boost_r041_water"
+        op: "replace"
+        target:
+          typed_field:
+            entity_id: "civic__r041"
+            component_type_id: "civic__CivicState"
+            field_name: "water"
+        value: 0.940
+  - variant_id: "high_trust_drill"
+    overrides:
+      - override_id: "trust_r001_drill"
+        op: "replace"
+        target:
+          typed_field:
+            entity_id: "civic__r001"
+            component_type_id: "civic__CivicState"
+            field_name: "trust"
+        value: 0.880
+      - override_id: "trust_r030_drill"
+        op: "replace"
+        target:
+          typed_field:
+            entity_id: "civic__r030"
+            component_type_id: "civic__CivicState"
+            field_name: "trust"
+        value: 0.860
+      - override_id: "gov_d3_legitimacy_drill"
+        op: "replace"
+        target:
+          typed_field:
+            entity_id: "gov__command_d3"
+            component_type_id: "gov__CommandState"
+            field_name: "legitimacy"
+        value: 0.840
+  - variant_id: "fragile_grid"
+    overrides:
+      - override_id: "low_facility_09_reliability"
+        op: "replace"
+        target:
+          typed_field:
+            entity_id: "infra__facility_09"
+            component_type_id: "infra__FacilityStatus"
+            field_name: "reliability"
+        value: 0.480
+      - override_id: "low_facility_10_stock"
+        op: "replace"
+        target:
+          typed_field:
+            entity_id: "infra__facility_10"
+            component_type_id: "infra__FacilityStatus"
+            field_name: "stock"
+        value: 0.340
+      - override_id: "stress_r050_fragile"
+        op: "replace"
+        target:
+          typed_field:
+            entity_id: "civic__r050"
+            component_type_id: "civic__CivicState"
+            field_name: "stress"
+        value: 0.690
+
+metrics:
+  - metric_id: "r001_resilience"
+    kind: "typed_field_final"
+    typed_field:
+      entity_id: "civic__r001"
+      component_type_id: "civic__CivicState"
+      field_name: "resilience_score"
+  - metric_id: "r024_resilience"
+    kind: "typed_field_final"
+    typed_field:
+      entity_id: "civic__r024"
+      component_type_id: "civic__CivicState"
+      field_name: "resilience_score"
+  - metric_id: "r060_resilience"
+    kind: "typed_field_final"
+    typed_field:
+      entity_id: "civic__r060"
+      component_type_id: "civic__CivicState"
+      field_name: "resilience_score"
+  - metric_id: "facility_09_backlog"
+    kind: "typed_field_final"
+    typed_field:
+      entity_id: "infra__facility_09"
+      component_type_id: "infra__FacilityStatus"
+      field_name: "backlog"
+  - metric_id: "gov_d3_budget"
+    kind: "typed_field_final"
+    typed_field:
+      entity_id: "gov__command_d3"
+      component_type_id: "gov__CommandState"
+      field_name: "budget"
+  - metric_id: "scaled_r001_resilience"
+    kind: "acme.market::scaled_typed_field_final"
+    config:
+      entity_id: "civic__r001"
+      component_type_id: "civic__CivicState"
+      field_name: "resilience_score"
+      multiplier: 100
+  - metric_id: "avg_population_resilience_pct"
+    kind: "civic.resilience::population_average_field"
+    config:
+      entity_id_prefix: "civic__r"
+      component_type_id: "civic__CivicState"
+      field_name: "resilience_score"
+      multiplier: 100

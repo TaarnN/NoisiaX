@@ -1,0 +1,101 @@
+scenario_id: "project_civic_resilience_governance"
+schema_version: "1.0.0"
+master_seed: 20260506
+goal_statement: |
+  Composable governance module for the civic resilience project scenario.
+assumptions:
+  - assumption_id: "assume_governance_panel"
+    category: "project_scope"
+    description: "District command cells track public messaging, field teams, budgets, and legitimacy."
+    rationale: "The parent scenario uses relation systems to broadcast policy effects."
+    confidence_level: REJECT
+
+typed_layer:
+  world:
+    duration: 45.0
+    time_unit: "days"
+    max_event_count: 12000
+    tick_interval: 1.0
+
+  component_types:
+    - component_type_id: "CommandState"
+      fields:
+        district: INTEGER
+        coordination: FLOAT
+        budget: FLOAT
+        field_teams: INTEGER
+        public_messaging: FLOAT
+        legitimacy: FLOAT
+
+  entity_types:
+    - entity_type_id: "command_cell"
+      components: ["CommandState"]
+
+  relation_types: []
+  event_types: []
+
+  entities:
+    - entity_id: "command_d1"
+      entity_type: "command_cell"
+      components:
+        CommandState:
+          district: 1
+          coordination: 0.575
+          budget: 1210.0
+          field_teams: 4
+          public_messaging: 0.485
+          legitimacy: 0.588
+    - entity_id: "command_d2"
+      entity_type: "command_cell"
+      components:
+        CommandState:
+          district: 2
+          coordination: 0.610
+          budget: 1140.0
+          field_teams: 5
+          public_messaging: 0.510
+          legitimacy: 0.606
+    - entity_id: "command_d3"
+      entity_type: "command_cell"
+      components:
+        CommandState:
+          district: 3
+          coordination: 0.645
+          budget: 1070.0
+          field_teams: 3
+          public_messaging: 0.535
+          legitimacy: 0.624
+    - entity_id: "command_d4"
+      entity_type: "command_cell"
+      components:
+        CommandState:
+          district: 4
+          coordination: 0.680
+          budget: 1000.0
+          field_teams: 4
+          public_messaging: 0.560
+          legitimacy: 0.642
+    - entity_id: "command_d5"
+      entity_type: "command_cell"
+      components:
+        CommandState:
+          district: 5
+          coordination: 0.715
+          budget: 930.0
+          field_teams: 5
+          public_messaging: 0.585
+          legitimacy: 0.660
+    - entity_id: "command_d6"
+      entity_type: "command_cell"
+      components:
+        CommandState:
+          district: 6
+          coordination: 0.750
+          budget: 860.0
+          field_teams: 3
+          public_messaging: 0.610
+          legitimacy: 0.678
+
+  relations: []
+  initial_events: []
+  systems: []

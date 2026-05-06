@@ -1,0 +1,200 @@
+scenario_id: "project_civic_resilience_infrastructure"
+schema_version: "1.0.0"
+master_seed: 20260506
+goal_statement: |
+  Composable critical-infrastructure module for the civic resilience project scenario.
+assumptions:
+  - assumption_id: "assume_infrastructure_panel"
+    category: "project_scope"
+    description: "Twelve district facilities model power, water, health, shelter, and logistics stress."
+    rationale: "The parent scenario links these facilities to residents and command cells."
+    confidence_level: REJECT
+
+typed_layer:
+  world:
+    duration: 45.0
+    time_unit: "days"
+    max_event_count: 12000
+    tick_interval: 1.0
+
+  component_types:
+    - component_type_id: "FacilityStatus"
+      fields:
+        district: INTEGER
+        kind: STRING
+        capacity: FLOAT
+        reliability: FLOAT
+        load: FLOAT
+        backlog: FLOAT
+        stock: FLOAT
+        damage: FLOAT
+        price_index: FLOAT
+
+  entity_types:
+    - entity_type_id: "facility"
+      components: ["FacilityStatus"]
+
+  relation_types: []
+  event_types: []
+
+  entities:
+    - entity_id: "facility_01"
+      entity_type: "facility"
+      components:
+        FacilityStatus:
+          district: 1
+          kind: "substation"
+          capacity: 120.0
+          reliability: 0.857
+          load: 9.0
+          backlog: 0.660
+          stock: 0.869
+          damage: 0.083
+          price_index: 0.275
+    - entity_id: "facility_02"
+      entity_type: "facility"
+      components:
+        FacilityStatus:
+          district: 1
+          kind: "water_pump"
+          capacity: 113.0
+          reliability: 0.882
+          load: 10.0
+          backlog: 0.750
+          stock: 0.844
+          damage: 0.065
+          price_index: 0.305
+    - entity_id: "facility_03"
+      entity_type: "facility"
+      components:
+        FacilityStatus:
+          district: 2
+          kind: "clinic"
+          capacity: 117.0
+          reliability: 0.829
+          load: 13.0
+          backlog: 0.690
+          stock: 0.793
+          damage: 0.098
+          price_index: 0.290
+    - entity_id: "facility_04"
+      entity_type: "facility"
+      components:
+        FacilityStatus:
+          district: 2
+          kind: "shelter"
+          capacity: 134.0
+          reliability: 0.854
+          load: 10.0
+          backlog: 0.780
+          stock: 0.768
+          damage: 0.080
+          price_index: 0.320
+    - entity_id: "facility_05"
+      entity_type: "facility"
+      components:
+        FacilityStatus:
+          district: 3
+          kind: "logistics_depot"
+          capacity: 138.0
+          reliability: 0.801
+          load: 13.0
+          backlog: 0.990
+          stock: 0.717
+          damage: 0.113
+          price_index: 0.395
+    - entity_id: "facility_06"
+      entity_type: "facility"
+      components:
+        FacilityStatus:
+          district: 3
+          kind: "cell_tower"
+          capacity: 131.0
+          reliability: 0.826
+          load: 14.0
+          backlog: 0.810
+          stock: 0.692
+          damage: 0.095
+          price_index: 0.335
+    - entity_id: "facility_07"
+      entity_type: "facility"
+      components:
+        FacilityStatus:
+          district: 4
+          kind: "substation"
+          capacity: 159.0
+          reliability: 0.773
+          load: 17.0
+          backlog: 1.020
+          stock: 0.641
+          damage: 0.128
+          price_index: 0.410
+    - entity_id: "facility_08"
+      entity_type: "facility"
+      components:
+        FacilityStatus:
+          district: 4
+          kind: "water_pump"
+          capacity: 152.0
+          reliability: 0.798
+          load: 14.0
+          backlog: 1.110
+          stock: 0.616
+          damage: 0.110
+          price_index: 0.440
+    - entity_id: "facility_09"
+      entity_type: "facility"
+      components:
+        FacilityStatus:
+          district: 5
+          kind: "clinic"
+          capacity: 156.0
+          reliability: 0.745
+          load: 17.0
+          backlog: 1.050
+          stock: 0.765
+          damage: 0.143
+          price_index: 0.425
+    - entity_id: "facility_10"
+      entity_type: "facility"
+      components:
+        FacilityStatus:
+          district: 5
+          kind: "shelter"
+          capacity: 149.0
+          reliability: 0.770
+          load: 18.0
+          backlog: 1.140
+          stock: 0.740
+          damage: 0.125
+          price_index: 0.455
+    - entity_id: "facility_11"
+      entity_type: "facility"
+      components:
+        FacilityStatus:
+          district: 6
+          kind: "logistics_depot"
+          capacity: 177.0
+          reliability: 0.717
+          load: 21.0
+          backlog: 1.350
+          stock: 0.689
+          damage: 0.158
+          price_index: 0.530
+    - entity_id: "facility_12"
+      entity_type: "facility"
+      components:
+        FacilityStatus:
+          district: 6
+          kind: "cell_tower"
+          capacity: 170.0
+          reliability: 0.742
+          load: 18.0
+          backlog: 1.170
+          stock: 0.664
+          damage: 0.140
+          price_index: 0.470
+
+  relations: []
+  initial_events: []
+  systems: []
