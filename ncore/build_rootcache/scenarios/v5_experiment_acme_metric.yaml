@@ -1,0 +1,14 @@
+experiment_id: "v5_acme_metric"
+base_scenario: "v5_acme_market_expr.yaml"
+
+seeds: [1]
+
+metrics:
+  - metric_id: "scaled_value"
+    kind: "acme.market::scaled_typed_field_final"
+    config:
+      entity_id: "n1"
+      component_type_id: "Sample"
+      field_name: "value"
+      multiplier: 2
+

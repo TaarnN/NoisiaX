@@ -1,0 +1,14 @@
+{
+  "noisiax_version": "1.0.0",
+  "experiment_id": "v4_experiment_basic",
+  "base_scenario_path": "/Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build/scenarios/v4_rng_value.yaml",
+  "base_scenario_hash": "5dbf910c20c96958",
+  "runs": [
+    {"run_id": "default_run_0_seed_1", "variant_id": "default", "seed": 1, "base_scenario_hash": "5dbf910c20c96958", "resolved_scenario_hash": "b3f7501d166abc22", "run_options": {"trace_level": "none", "max_time": -1, "max_events": 100000, "include_final_state": true, "include_causal_graph": true}, "success": true, "final_fingerprint": "9978acb3a402389", "metrics": {"sample_value": "0.838992"}},
+    {"run_id": "default_run_1_seed_2", "variant_id": "default", "seed": 2, "base_scenario_hash": "5dbf910c20c96958", "resolved_scenario_hash": "b3f7501d166abc22", "run_options": {"trace_level": "none", "max_time": -1, "max_events": 100000, "include_final_state": true, "include_causal_graph": true}, "success": true, "final_fingerprint": "71c5f05886ccb467", "metrics": {"sample_value": "0.235112"}},
+    {"run_id": "default_run_2_seed_3", "variant_id": "default", "seed": 3, "base_scenario_hash": "5dbf910c20c96958", "resolved_scenario_hash": "b3f7501d166abc22", "run_options": {"trace_level": "none", "max_time": -1, "max_events": 100000, "include_final_state": true, "include_causal_graph": true}, "success": true, "final_fingerprint": "6b8fb1a56dce6249", "metrics": {"sample_value": "0.012155"}}
+  ],
+  "aggregates": [
+    {"metric_id": "sample_value", "count": 3, "min": 0.0121554, "max": 0.838992, "mean": 0.362087, "stddev": 0.349291}
+  ]
+}

@@ -41,3 +41,16 @@ runtime regression tests.
 - `v4_experiment_basic.yaml`: minimal experiment definition driving
   `v4_rng_value.yaml` across a fixed seed list and aggregating a typed-field
   metric.
+
+## Project-Scale v3/v4/v5 Scenario
+
+- `project_civic_resilience_v5.yaml`: larger authoring scenario that combines
+  v3 typed systems, v4 namespaced imports, and v5 `acme.market` extension
+  lowering/expression symbols. The scenario imports population,
+  infrastructure, and governance fragments, then simulates a 45-day disaster
+  resilience response with scheduled shocks, causal child events, deterministic
+  RNG, runtime relation creation, and typed final-state metrics.
+- `project_civic_resilience_experiment_v4_v5.yaml`: 16-run experiment over
+  four variants and four seeds with stochastic overlays, typed metrics, and the
+  v5 extension metric `acme.market::scaled_typed_field_final`.
+- `project_civic_resilience.md`: runbook and capability map for the full suite.

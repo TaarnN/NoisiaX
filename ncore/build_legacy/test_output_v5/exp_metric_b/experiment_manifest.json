@@ -1,0 +1,12 @@
+{
+  "noisiax_version": "1.0.0",
+  "experiment_id": "v5_acme_metric",
+  "base_scenario_path": "scenarios/v5_acme_market_expr.yaml",
+  "base_scenario_hash": "da5ceefa81470917",
+  "runs": [
+    {"run_id": "default_run_0_seed_1", "variant_id": "default", "seed": 1, "base_scenario_hash": "da5ceefa81470917", "resolved_scenario_hash": "da5ceefa81470917", "run_options": {"trace_level": "none", "max_time": -1, "max_events": 100000, "include_final_state": true, "include_causal_graph": true}, "success": true, "final_fingerprint": "8878bbb9614ae34f", "metrics": {"scaled_value": "26"}}
+  ],
+  "aggregates": [
+    {"metric_id": "scaled_value", "count": 1, "min": 26, "max": 26, "mean": 26, "stddev": 0}
+  ]
+}

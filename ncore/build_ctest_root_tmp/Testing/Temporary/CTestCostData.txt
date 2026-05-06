@@ -1,0 +1,13 @@
+noisiax_tests 0 0
+noisiax_cli_validate 0 0
+noisiax_cli_compile 0 0
+noisiax_cli_run 0 0
+noisiax_cli_resolve 0 0
+noisiax_cli_experiment 0 0
+---
+noisiax_tests
+noisiax_cli_validate
+noisiax_cli_compile
+noisiax_cli_run
+noisiax_cli_resolve
+noisiax_cli_experiment

@@ -1,0 +1,130 @@
+Start testing: May 05 17:39 +07
+----------------------------------------------------------
+1/6 Testing: noisiax_tests
+1/6 Test: noisiax_tests
+Command: "/Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build/noisiax_tests"
+Directory: /Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build
+"noisiax_tests" start time: May 05 17:39 +07
+Output:
+----------------------------------------------------------
+Running NoisiaX integration tests...
+All tests passed
+<end of output>
+Test time =   1.10 sec
+----------------------------------------------------------
+Test Passed.
+"noisiax_tests" end time: May 05 17:39 +07
+"noisiax_tests" time elapsed: 00:00:01
+----------------------------------------------------------
+
+2/6 Testing: noisiax_cli_validate
+2/6 Test: noisiax_cli_validate
+Command: "/Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build/noisiax" "validate" "/Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build/scenarios/happy_path.yaml"
+Directory: /Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build
+"noisiax_cli_validate" start time: May 05 17:39 +07
+Output:
+----------------------------------------------------------
+=== NoisiaX Scenario Report ===
+
+Scenario ID: happy_path_demo_001
+Report Type: VALIDATION
+Status: SUCCESS
+
+INFO (18):
+  - goal_statement: Goal statement validated
+  - assumptions: All assumptions validated
+  - entities: All entities validated
+  - variables: All variables validated
+  - dependencies: All dependencies validated
+  - constraints: All constraints validated
+  - events: All events validated
+  - agent_layer: No agent_layer defined (v1 execution path)
+  - evaluation_criteria: All evaluation criteria validated
+  - required_fields: All required fields present
+  - unknown_fields: No unknown fields detected (checked at parse time)
+  - anti_patterns: No anti-patterns detected
+  - cycle_detection: No cyclic dependencies detected
+  - type_compatibility: Type compatibility verified
+  - initial_constraints: Initial constraints are satisfiable
+  - orphan_variables: No orphan variables detected
+  - fan_out_limits: Fan-out within acceptable limits
+  - depth_limits: Graph depth within acceptable limits (max: 2)
+
+STATISTICS:
+  checks_total: 18
+  errors: 0
+  warnings: 0
+
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"noisiax_cli_validate" end time: May 05 17:39 +07
+"noisiax_cli_validate" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/6 Testing: noisiax_cli_compile
+3/6 Test: noisiax_cli_compile
+Command: "/Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build/noisiax" "compile" "/Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build/scenarios/happy_path.yaml"
+Directory: /Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build
+"noisiax_cli_compile" start time: May 05 17:39 +07
+Output:
+----------------------------------------------------------
+Compilation succeeded
+scenario_id: happy_path_demo_001
+variables: 4
+dependencies: 3
+constraints: 2
+events: 2
+agent_layer: disabled
+typed_layer: disabled
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"noisiax_cli_compile" end time: May 05 17:39 +07
+"noisiax_cli_compile" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/6 Testing: noisiax_cli_run
+4/6 Test: noisiax_cli_run
+Command: "/Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build/noisiax" "run" "/Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build/scenarios/happy_path.yaml"
+Directory: /Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build
+"noisiax_cli_run" start time: May 05 17:39 +07
+Output:
+----------------------------------------------------------
+=== NoisiaX Scenario Report ===
+
+Scenario ID: happy_path_demo_001
+Report Type: RUNTIME
+Status: SUCCESS
+
+INFO (1):
+  - Scenario executed successfully
+
+STATISTICS:
+  final_time: 2.000000
+  processed_events: 2
+  state_fingerprint: 3337f5b59bc6c331
+  total_constraints: 2
+  total_dependencies: 3
+  total_events: 2
+  total_variables: 4
+
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"noisiax_cli_run" end time: May 05 17:39 +07
+"noisiax_cli_run" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/6 Testing: noisiax_cli_resolve
+5/6 Test: noisiax_cli_resolve
+Command: "/Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build/noisiax" "resolve" "/Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build/scenarios/v4_composition_base.yaml" "--output" "/Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build/resolved_v4_composition.yaml"
+Directory: /Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build
+"noisiax_cli_resolve" start time: May 05 17:39 +07
+Output:
+----------------------------------------------------------
+Resolved scenario written to /Users/taarn/Documents/PGM/Prog-Languages/NoisiaX/build/resolved_v4_composition.yaml
+<end of output>

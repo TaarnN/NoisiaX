@@ -362,8 +362,8 @@ writes:
 include/noisiax/                 Public headers
 src/                             Library, runtime, compiler, validator, serializer, and CLI implementation
 tests/                           Integration and regression tests
-plans/                           Historical implementation plans
 cmake/                           CMake package configuration
+ncore/                           Non-core assets, fixtures, plans, tools, generated outputs
 ```
 
 Important headers:

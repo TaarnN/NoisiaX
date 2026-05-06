@@ -1,0 +1,96 @@
+scenario_id: v4_composition_base
+schema_version: 1.0.0
+master_seed: 1
+goal_statement: |
+  v4 composition fixture: merge two typed_layer fragments with namespaces.
+assumptions:
+  - assumption_id: assume_v4_composition_base
+    category: test
+    description: Scenario imports are resolved into a single canonical scenario before validation/compile.
+    rationale: Used to test resolve_scenario composition, namespacing, and circular import detection.
+    confidence_level: REJECT
+  - assumption_id: frag_a__assume_v4_composition_fragment_a
+    category: test
+    description: Fragment A contributes a Branch component and a deterministic rng-based write.
+    rationale: Exercises namespacing rewrite across component/entity/event/system ids.
+    confidence_level: REJECT
+  - assumption_id: frag_b__assume_v4_composition_fragment_b
+    category: test
+    description: Fragment B contributes a Counter component and a deterministic write.
+    rationale: Exercises namespacing rewrite across component/entity/event/system ids.
+    confidence_level: REJECT
+entities:
+  []
+variables:
+  []
+dependency_edges:
+  []
+constraints:
+  []
+events:
+  []
+typed_layer:
+  world:
+    duration: 1
+    time_unit: ticks
+    max_event_count: 10
+  component_types:
+    - component_type_id: frag_a__Branch
+      fields:
+        flag: BOOLEAN
+    - component_type_id: frag_b__Counter
+      fields:
+        value: INTEGER
+  entity_types:
+    - entity_type_id: frag_a__node
+      components:
+        - frag_a__Branch
+    - entity_type_id: frag_b__node
+      components:
+        - frag_b__Counter
+  entities:
+    - entity_id: frag_a__n1
+      entity_type: frag_a__node
+      components:
+        frag_a__Branch:
+          flag: false
+    - entity_id: frag_b__n2
+      entity_type: frag_b__node
+      components:
+        frag_b__Counter:
+          value: 0
+  relation_types:
+    []
+  relations:
+    []
+  event_types:
+    - event_type_id: frag_a__start
+    - event_type_id: frag_b__start
+  initial_events:
+    - event_type: frag_a__start
+      timestamp: 0
+      priority: 0
+      event_handle: frag_a_start_0000
+    - event_type: frag_b__start
+      timestamp: 0
+      priority: 0
+      event_handle: frag_b_start_0000
+  systems:
+    - system_id: frag_a__branch_once
+      triggered_by:
+        - frag_a__start
+      kind: per_entity
+      entity_type: frag_a__node
+      writes:
+        - target: frag_a__Branch.flag
+          expr: rng("branch", 0, 1) > 0.5
+    - system_id: frag_b__increment_once
+      triggered_by:
+        - frag_b__start
+      kind: per_entity
+      entity_type: frag_b__node
+      writes:
+        - target: frag_b__Counter.value
+          expr: frag_b__Counter.value + 1
+evaluation_criteria:
+  []

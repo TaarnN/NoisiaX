@@ -1,0 +1,7 @@
+noisiax_tests 1 1.10878
+noisiax_cli_validate 1 0.570757
+noisiax_cli_compile 1 0.0225777
+noisiax_cli_run 1 0.0184323
+noisiax_cli_resolve 1 0.0230087
+noisiax_cli_experiment 1 0.0289507
+---

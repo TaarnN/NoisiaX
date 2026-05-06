@@ -1,0 +1,10 @@
+{
+  "noisiax_version": "1.0.0",
+  "experiment_id": "v5_acme_metric",
+  "runs_total": 1,
+  "runs_succeeded": 1,
+  "runs_failed": 0,
+  "aggregates": [
+    {"metric_id": "scaled_value", "count": 1, "min": 26, "max": 26, "mean": 26, "stddev": 0}
+  ]
+}

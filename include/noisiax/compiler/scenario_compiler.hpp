@@ -2,6 +2,7 @@
 
 #include "noisiax/schema/scenario_schema.hpp"
 #include "noisiax/validation/scenario_validator.hpp"
+#include "noisiax/extensions/expression_registry.hpp"
 #include <string>
 #include <map>
 #include <memory>
@@ -243,6 +244,9 @@ struct CompiledScenario {
     
     // Pre-registered propagation functions mapping
     std::map<std::string, std::function<void(double&, const double&, double)>> propagation_functions;
+
+    // Expression functions for v3 typed runtime (built-ins + extensions).
+    extensions::ExpressionFunctionRegistry expression_functions;
     
     // Statistics
     std::size_t total_variables;

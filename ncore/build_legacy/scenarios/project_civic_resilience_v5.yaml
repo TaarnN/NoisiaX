@@ -1,0 +1,2439 @@
+scenario_id: "project_civic_resilience_v5"
+schema_version: "5.0.0"
+master_seed: 20260506
+goal_statement: |
+  A 45-day district-level disaster resilience simulation combining v3 typed systems, v4 scenario composition, v4 experiment hooks, and v5 extension symbols.
+assumptions:
+  - assumption_id: "assume_project_scale"
+    category: "scenario_design"
+    description: "The scenario intentionally uses a medium-large deterministic model: 78 entities, hundreds of relations, 45 ticks, and scheduled shocks."
+    rationale: "This demonstrates NoisiaX beyond unit fixtures while keeping the output inspectable."
+    confidence_level: REJECT
+  - assumption_id: "assume_composable_modules"
+    category: "composition"
+    description: "Population, infrastructure, and governance are separate importable modules."
+    rationale: "v4 composition keeps scenario authoring modular and testable."
+    confidence_level: REJECT
+  - assumption_id: "assume_extension_pricing"
+    category: "extension"
+    description: "The acme.market and civic.resilience v5 extensions are used as authoring transforms, expression functions, propagation symbols, and experiment metrics."
+    rationale: "This exercises extension discovery, symbol registration, lowering, typed expression dispatch, and experiment metrics."
+    confidence_level: REJECT
+
+imports:
+  - path: "project_civic_resilience_population.yaml"
+    namespace: "civic"
+  - path: "project_civic_resilience_infrastructure.yaml"
+    namespace: "infra"
+  - path: "project_civic_resilience_governance.yaml"
+    namespace: "gov"
+
+extensions:
+  - id: "acme.market"
+    version: "1.2.0"
+    compatibility: ">=1.2,<2.0"
+  - id: "civic.resilience"
+    version: "1.0.0"
+    compatibility: ">=1.0,<2.0"
+
+acme.market:
+  demo:
+    base: 18.5
+    multiplier: 1.6
+
+civic.resilience:
+  control_index:
+    hazard_baseline: 0.44
+    resource_readiness: 0.71
+    governance_weight: 1.35
+
+typed_layer:
+  world:
+    duration: 45.0
+    time_unit: "days"
+    max_event_count: 12000
+    tick_interval: 1.0
+
+  component_types: []
+  entity_types: []
+  entities: []
+
+  relation_types:
+    - relation_type_id: "service_link"
+      directed: true
+      max_total: 180
+      payload_fields:
+        distance_km: FLOAT
+        essentiality: FLOAT
+        demand_weight: FLOAT
+    - relation_type_id: "social_signal"
+      directed: true
+      max_per_entity: 12
+      max_total: 260
+      payload_fields:
+        tie_strength: FLOAT
+        rumor_channel: FLOAT
+    - relation_type_id: "volunteer_support"
+      directed: true
+      max_per_entity: 80
+      max_total: 500
+      payload_fields:
+        aid: FLOAT
+        created_day: FLOAT
+    - relation_type_id: "resident_policy_link"
+      directed: true
+      max_total: 120
+      payload_fields:
+        coverage: FLOAT
+    - relation_type_id: "facility_policy_link"
+      directed: true
+      max_total: 40
+      payload_fields:
+        priority: FLOAT
+
+  event_types:
+    - event_type_id: "tick"
+      payload_fields:
+        dt: FLOAT
+    - event_type_id: "storm_front"
+      payload_fields:
+        district: INTEGER
+        severity: FLOAT
+    - event_type_id: "supply_drop"
+      payload_fields:
+        district: INTEGER
+        stock_boost: FLOAT
+        price_relief: FLOAT
+    - event_type_id: "repair_wave"
+      payload_fields:
+        district: INTEGER
+        crew_power: FLOAT
+    - event_type_id: "rumor_spike"
+      payload_fields:
+        district: INTEGER
+        intensity: FLOAT
+    - event_type_id: "evacuation_order"
+      payload_fields:
+        district: INTEGER
+        urgency: FLOAT
+    - event_type_id: "coordination_day"
+      payload_fields:
+        public_confidence: FLOAT
+        repair_focus: FLOAT
+    - event_type_id: "service_slowdown"
+      payload_fields:
+        district: INTEGER
+        severity: FLOAT
+    - event_type_id: "mutual_aid_alert"
+      payload_fields:
+        district: INTEGER
+        urgency: FLOAT
+
+  relations:
+    - relation_type: "service_link"
+      source: "infra__facility_02"
+      target: "civic__r001"
+      payload:
+        distance_km: 1.560
+        essentiality: 0.880
+        demand_weight: 0.965
+    - relation_type: "service_link"
+      source: "infra__facility_01"
+      target: "civic__r002"
+      payload:
+        distance_km: 0.680
+        essentiality: 0.710
+        demand_weight: 0.695
+    - relation_type: "service_link"
+      source: "infra__facility_02"
+      target: "civic__r003"
+      payload:
+        distance_km: 1.890
+        essentiality: 0.880
+        demand_weight: 1.010
+    - relation_type: "service_link"
+      source: "infra__facility_01"
+      target: "civic__r004"
+      payload:
+        distance_km: 1.010
+        essentiality: 0.880
+        demand_weight: 0.740
+    - relation_type: "service_link"
+      source: "infra__facility_02"
+      target: "civic__r005"
+      payload:
+        distance_km: 2.220
+        essentiality: 0.620
+        demand_weight: 1.055
+    - relation_type: "service_link"
+      source: "infra__facility_01"
+      target: "civic__r006"
+      payload:
+        distance_km: 1.340
+        essentiality: 0.665
+        demand_weight: 0.785
+    - relation_type: "service_link"
+      source: "infra__facility_02"
+      target: "civic__r007"
+      payload:
+        distance_km: 0.460
+        essentiality: 0.710
+        demand_weight: 1.100
+    - relation_type: "service_link"
+      source: "infra__facility_01"
+      target: "civic__r008"
+      payload:
+        distance_km: 1.670
+        essentiality: 0.755
+        demand_weight: 0.830
+    - relation_type: "service_link"
+      source: "infra__facility_02"
+      target: "civic__r009"
+      payload:
+        distance_km: 0.790
+        essentiality: 0.800
+        demand_weight: 1.145
+    - relation_type: "service_link"
+      source: "infra__facility_01"
+      target: "civic__r010"
+      payload:
+        distance_km: 2.000
+        essentiality: 0.620
+        demand_weight: 0.875
+    - relation_type: "service_link"
+      source: "infra__facility_04"
+      target: "civic__r011"
+      payload:
+        distance_km: 1.120
+        essentiality: 0.880
+        demand_weight: 1.190
+    - relation_type: "service_link"
+      source: "infra__facility_03"
+      target: "civic__r012"
+      payload:
+        distance_km: 2.330
+        essentiality: 0.710
+        demand_weight: 0.920
+    - relation_type: "service_link"
+      source: "infra__facility_04"
+      target: "civic__r013"
+      payload:
+        distance_km: 1.450
+        essentiality: 0.880
+        demand_weight: 0.650
+    - relation_type: "service_link"
+      source: "infra__facility_03"
+      target: "civic__r014"
+      payload:
+        distance_km: 0.570
+        essentiality: 0.880
+        demand_weight: 0.965
+    - relation_type: "service_link"
+      source: "infra__facility_04"
+      target: "civic__r015"
+      payload:
+        distance_km: 1.780
+        essentiality: 0.620
+        demand_weight: 0.695
+    - relation_type: "service_link"
+      source: "infra__facility_03"
+      target: "civic__r016"
+      payload:
+        distance_km: 0.900
+        essentiality: 0.665
+        demand_weight: 1.010
+    - relation_type: "service_link"
+      source: "infra__facility_04"
+      target: "civic__r017"
+      payload:
+        distance_km: 2.110
+        essentiality: 0.710
+        demand_weight: 0.740
+    - relation_type: "service_link"
+      source: "infra__facility_03"
+      target: "civic__r018"
+      payload:
+        distance_km: 1.230
+        essentiality: 0.755
+        demand_weight: 1.055
+    - relation_type: "service_link"
+      source: "infra__facility_04"
+      target: "civic__r019"
+      payload:
+        distance_km: 0.350
+        essentiality: 0.800
+        demand_weight: 0.785
+    - relation_type: "service_link"
+      source: "infra__facility_03"
+      target: "civic__r020"
+      payload:
+        distance_km: 1.560
+        essentiality: 0.620
+        demand_weight: 1.100
+    - relation_type: "service_link"
+      source: "infra__facility_06"
+      target: "civic__r021"
+      payload:
+        distance_km: 0.680
+        essentiality: 0.880
+        demand_weight: 0.830
+    - relation_type: "service_link"
+      source: "infra__facility_05"
+      target: "civic__r022"
+      payload:
+        distance_km: 1.890
+        essentiality: 0.710
+        demand_weight: 1.145
+    - relation_type: "service_link"
+      source: "infra__facility_06"
+      target: "civic__r023"
+      payload:
+        distance_km: 1.010
+        essentiality: 0.880
+        demand_weight: 0.875
+    - relation_type: "service_link"
+      source: "infra__facility_05"
+      target: "civic__r024"
+      payload:
+        distance_km: 2.220
+        essentiality: 0.880
+        demand_weight: 1.190
+    - relation_type: "service_link"
+      source: "infra__facility_06"
+      target: "civic__r025"
+      payload:
+        distance_km: 1.340
+        essentiality: 0.620
+        demand_weight: 0.920
+    - relation_type: "service_link"
+      source: "infra__facility_05"
+      target: "civic__r026"
+      payload:
+        distance_km: 0.460
+        essentiality: 0.665
+        demand_weight: 0.650
+    - relation_type: "service_link"
+      source: "infra__facility_06"
+      target: "civic__r027"
+      payload:
+        distance_km: 1.670
+        essentiality: 0.710
+        demand_weight: 0.965
+    - relation_type: "service_link"
+      source: "infra__facility_05"
+      target: "civic__r028"
+      payload:
+        distance_km: 0.790
+        essentiality: 0.755
+        demand_weight: 0.695
+    - relation_type: "service_link"
+      source: "infra__facility_06"
+      target: "civic__r029"
+      payload:
+        distance_km: 2.000
+        essentiality: 0.800
+        demand_weight: 1.010
+    - relation_type: "service_link"
+      source: "infra__facility_05"
+      target: "civic__r030"
+      payload:
+        distance_km: 1.120
+        essentiality: 0.620
+        demand_weight: 0.740
+    - relation_type: "service_link"
+      source: "infra__facility_08"
+      target: "civic__r031"
+      payload:
+        distance_km: 2.330
+        essentiality: 0.880
+        demand_weight: 1.055
+    - relation_type: "service_link"
+      source: "infra__facility_07"
+      target: "civic__r032"
+      payload:
+        distance_km: 1.450
+        essentiality: 0.710
+        demand_weight: 0.785
+    - relation_type: "service_link"
+      source: "infra__facility_08"
+      target: "civic__r033"
+      payload:
+        distance_km: 0.570
+        essentiality: 0.880
+        demand_weight: 1.100
+    - relation_type: "service_link"
+      source: "infra__facility_07"
+      target: "civic__r034"
+      payload:
+        distance_km: 1.780
+        essentiality: 0.880
+        demand_weight: 0.830
+    - relation_type: "service_link"
+      source: "infra__facility_08"
+      target: "civic__r035"
+      payload:
+        distance_km: 0.900
+        essentiality: 0.620
+        demand_weight: 1.145
+    - relation_type: "service_link"
+      source: "infra__facility_07"
+      target: "civic__r036"
+      payload:
+        distance_km: 2.110
+        essentiality: 0.665
+        demand_weight: 0.875
+    - relation_type: "service_link"
+      source: "infra__facility_08"
+      target: "civic__r037"
+      payload:
+        distance_km: 1.230
+        essentiality: 0.710
+        demand_weight: 1.190
+    - relation_type: "service_link"
+      source: "infra__facility_07"
+      target: "civic__r038"
+      payload:
+        distance_km: 0.350
+        essentiality: 0.755
+        demand_weight: 0.920
+    - relation_type: "service_link"
+      source: "infra__facility_08"
+      target: "civic__r039"
+      payload:
+        distance_km: 1.560
+        essentiality: 0.800
+        demand_weight: 0.650
+    - relation_type: "service_link"
+      source: "infra__facility_07"
+      target: "civic__r040"
+      payload:
+        distance_km: 0.680
+        essentiality: 0.620
+        demand_weight: 0.965
+    - relation_type: "service_link"
+      source: "infra__facility_10"
+      target: "civic__r041"
+      payload:
+        distance_km: 1.890
+        essentiality: 0.880
+        demand_weight: 0.695
+    - relation_type: "service_link"
+      source: "infra__facility_09"
+      target: "civic__r042"
+      payload:
+        distance_km: 1.010
+        essentiality: 0.710
+        demand_weight: 1.010
+    - relation_type: "service_link"
+      source: "infra__facility_10"
+      target: "civic__r043"
+      payload:
+        distance_km: 2.220
+        essentiality: 0.880
+        demand_weight: 0.740
+    - relation_type: "service_link"
+      source: "infra__facility_09"
+      target: "civic__r044"
+      payload:
+        distance_km: 1.340
+        essentiality: 0.880
+        demand_weight: 1.055
+    - relation_type: "service_link"
+      source: "infra__facility_10"
+      target: "civic__r045"
+      payload:
+        distance_km: 0.460
+        essentiality: 0.620
+        demand_weight: 0.785
+    - relation_type: "service_link"
+      source: "infra__facility_09"
+      target: "civic__r046"
+      payload:
+        distance_km: 1.670
+        essentiality: 0.665
+        demand_weight: 1.100
+    - relation_type: "service_link"
+      source: "infra__facility_10"
+      target: "civic__r047"
+      payload:
+        distance_km: 0.790
+        essentiality: 0.710
+        demand_weight: 0.830
+    - relation_type: "service_link"
+      source: "infra__facility_09"
+      target: "civic__r048"
+      payload:
+        distance_km: 2.000
+        essentiality: 0.755
+        demand_weight: 1.145
+    - relation_type: "service_link"
+      source: "infra__facility_10"
+      target: "civic__r049"
+      payload:
+        distance_km: 1.120
+        essentiality: 0.800
+        demand_weight: 0.875
+    - relation_type: "service_link"
+      source: "infra__facility_09"
+      target: "civic__r050"
+      payload:
+        distance_km: 2.330
+        essentiality: 0.620
+        demand_weight: 1.190
+    - relation_type: "service_link"
+      source: "infra__facility_12"
+      target: "civic__r051"
+      payload:
+        distance_km: 1.450
+        essentiality: 0.880
+        demand_weight: 0.920
+    - relation_type: "service_link"
+      source: "infra__facility_11"
+      target: "civic__r052"
+      payload:
+        distance_km: 0.570
+        essentiality: 0.710
+        demand_weight: 0.650
+    - relation_type: "service_link"
+      source: "infra__facility_12"
+      target: "civic__r053"
+      payload:
+        distance_km: 1.780
+        essentiality: 0.880
+        demand_weight: 0.965
+    - relation_type: "service_link"
+      source: "infra__facility_11"
+      target: "civic__r054"
+      payload:
+        distance_km: 0.900
+        essentiality: 0.880
+        demand_weight: 0.695
+    - relation_type: "service_link"
+      source: "infra__facility_12"
+      target: "civic__r055"
+      payload:
+        distance_km: 2.110
+        essentiality: 0.620
+        demand_weight: 1.010
+    - relation_type: "service_link"
+      source: "infra__facility_11"
+      target: "civic__r056"
+      payload:
+        distance_km: 1.230
+        essentiality: 0.665
+        demand_weight: 0.740
+    - relation_type: "service_link"
+      source: "infra__facility_12"
+      target: "civic__r057"
+      payload:
+        distance_km: 0.350
+        essentiality: 0.710
+        demand_weight: 1.055
+    - relation_type: "service_link"
+      source: "infra__facility_11"
+      target: "civic__r058"
+      payload:
+        distance_km: 1.560
+        essentiality: 0.755
+        demand_weight: 0.785
+    - relation_type: "service_link"
+      source: "infra__facility_12"
+      target: "civic__r059"
+      payload:
+        distance_km: 0.680
+        essentiality: 0.800
+        demand_weight: 1.100
+    - relation_type: "service_link"
+      source: "infra__facility_11"
+      target: "civic__r060"
+      payload:
+        distance_km: 1.890
+        essentiality: 0.620
+        demand_weight: 0.830
+    - relation_type: "social_signal"
+      source: "civic__r001"
+      target: "civic__r002"
+      payload:
+        tie_strength: 0.385
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r001"
+      target: "civic__r006"
+      payload:
+        tie_strength: 0.665
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r001"
+      target: "civic__r014"
+      payload:
+        tie_strength: 0.630
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r002"
+      target: "civic__r003"
+      payload:
+        tie_strength: 0.455
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r002"
+      target: "civic__r007"
+      payload:
+        tie_strength: 0.280
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r002"
+      target: "civic__r015"
+      payload:
+        tie_strength: 0.525
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r003"
+      target: "civic__r004"
+      payload:
+        tie_strength: 0.525
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r003"
+      target: "civic__r008"
+      payload:
+        tie_strength: 0.490
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r003"
+      target: "civic__r016"
+      payload:
+        tie_strength: 0.420
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r004"
+      target: "civic__r005"
+      payload:
+        tie_strength: 0.595
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r004"
+      target: "civic__r009"
+      payload:
+        tie_strength: 0.700
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r004"
+      target: "civic__r017"
+      payload:
+        tie_strength: 0.315
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r005"
+      target: "civic__r006"
+      payload:
+        tie_strength: 0.665
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r005"
+      target: "civic__r010"
+      payload:
+        tie_strength: 0.315
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r005"
+      target: "civic__r018"
+      payload:
+        tie_strength: 0.805
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r006"
+      target: "civic__r007"
+      payload:
+        tie_strength: 0.735
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r006"
+      target: "civic__r011"
+      payload:
+        tie_strength: 0.525
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r006"
+      target: "civic__r019"
+      payload:
+        tie_strength: 0.700
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r007"
+      target: "civic__r008"
+      payload:
+        tie_strength: 0.805
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r007"
+      target: "civic__r012"
+      payload:
+        tie_strength: 0.735
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r007"
+      target: "civic__r020"
+      payload:
+        tie_strength: 0.595
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r008"
+      target: "civic__r009"
+      payload:
+        tie_strength: 0.280
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r008"
+      target: "civic__r013"
+      payload:
+        tie_strength: 0.350
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r008"
+      target: "civic__r021"
+      payload:
+        tie_strength: 0.490
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r009"
+      target: "civic__r010"
+      payload:
+        tie_strength: 0.350
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r009"
+      target: "civic__r014"
+      payload:
+        tie_strength: 0.560
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r009"
+      target: "civic__r022"
+      payload:
+        tie_strength: 0.385
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r010"
+      target: "civic__r011"
+      payload:
+        tie_strength: 0.420
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r010"
+      target: "civic__r015"
+      payload:
+        tie_strength: 0.770
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r010"
+      target: "civic__r023"
+      payload:
+        tie_strength: 0.280
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r011"
+      target: "civic__r012"
+      payload:
+        tie_strength: 0.490
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r011"
+      target: "civic__r016"
+      payload:
+        tie_strength: 0.385
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r011"
+      target: "civic__r024"
+      payload:
+        tie_strength: 0.770
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r012"
+      target: "civic__r013"
+      payload:
+        tie_strength: 0.560
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r012"
+      target: "civic__r017"
+      payload:
+        tie_strength: 0.595
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r012"
+      target: "civic__r025"
+      payload:
+        tie_strength: 0.665
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r013"
+      target: "civic__r014"
+      payload:
+        tie_strength: 0.630
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r013"
+      target: "civic__r018"
+      payload:
+        tie_strength: 0.805
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r013"
+      target: "civic__r026"
+      payload:
+        tie_strength: 0.560
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r014"
+      target: "civic__r015"
+      payload:
+        tie_strength: 0.700
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r014"
+      target: "civic__r019"
+      payload:
+        tie_strength: 0.420
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r014"
+      target: "civic__r027"
+      payload:
+        tie_strength: 0.455
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r015"
+      target: "civic__r016"
+      payload:
+        tie_strength: 0.770
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r015"
+      target: "civic__r020"
+      payload:
+        tie_strength: 0.630
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r015"
+      target: "civic__r028"
+      payload:
+        tie_strength: 0.350
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r016"
+      target: "civic__r017"
+      payload:
+        tie_strength: 0.840
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r016"
+      target: "civic__r021"
+      payload:
+        tie_strength: 0.840
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r016"
+      target: "civic__r029"
+      payload:
+        tie_strength: 0.840
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r017"
+      target: "civic__r018"
+      payload:
+        tie_strength: 0.315
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r017"
+      target: "civic__r022"
+      payload:
+        tie_strength: 0.455
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r017"
+      target: "civic__r030"
+      payload:
+        tie_strength: 0.735
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r018"
+      target: "civic__r019"
+      payload:
+        tie_strength: 0.385
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r018"
+      target: "civic__r023"
+      payload:
+        tie_strength: 0.665
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r018"
+      target: "civic__r031"
+      payload:
+        tie_strength: 0.630
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r019"
+      target: "civic__r020"
+      payload:
+        tie_strength: 0.455
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r019"
+      target: "civic__r024"
+      payload:
+        tie_strength: 0.280
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r019"
+      target: "civic__r032"
+      payload:
+        tie_strength: 0.525
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r020"
+      target: "civic__r021"
+      payload:
+        tie_strength: 0.525
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r020"
+      target: "civic__r025"
+      payload:
+        tie_strength: 0.490
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r020"
+      target: "civic__r033"
+      payload:
+        tie_strength: 0.420
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r021"
+      target: "civic__r022"
+      payload:
+        tie_strength: 0.595
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r021"
+      target: "civic__r026"
+      payload:
+        tie_strength: 0.700
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r021"
+      target: "civic__r034"
+      payload:
+        tie_strength: 0.315
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r022"
+      target: "civic__r023"
+      payload:
+        tie_strength: 0.665
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r022"
+      target: "civic__r027"
+      payload:
+        tie_strength: 0.315
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r022"
+      target: "civic__r035"
+      payload:
+        tie_strength: 0.805
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r023"
+      target: "civic__r024"
+      payload:
+        tie_strength: 0.735
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r023"
+      target: "civic__r028"
+      payload:
+        tie_strength: 0.525
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r023"
+      target: "civic__r036"
+      payload:
+        tie_strength: 0.700
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r024"
+      target: "civic__r025"
+      payload:
+        tie_strength: 0.805
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r024"
+      target: "civic__r029"
+      payload:
+        tie_strength: 0.735
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r024"
+      target: "civic__r037"
+      payload:
+        tie_strength: 0.595
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r025"
+      target: "civic__r026"
+      payload:
+        tie_strength: 0.280
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r025"
+      target: "civic__r030"
+      payload:
+        tie_strength: 0.350
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r025"
+      target: "civic__r038"
+      payload:
+        tie_strength: 0.490
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r026"
+      target: "civic__r027"
+      payload:
+        tie_strength: 0.350
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r026"
+      target: "civic__r031"
+      payload:
+        tie_strength: 0.560
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r026"
+      target: "civic__r039"
+      payload:
+        tie_strength: 0.385
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r027"
+      target: "civic__r028"
+      payload:
+        tie_strength: 0.420
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r027"
+      target: "civic__r032"
+      payload:
+        tie_strength: 0.770
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r027"
+      target: "civic__r040"
+      payload:
+        tie_strength: 0.280
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r028"
+      target: "civic__r029"
+      payload:
+        tie_strength: 0.490
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r028"
+      target: "civic__r033"
+      payload:
+        tie_strength: 0.385
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r028"
+      target: "civic__r041"
+      payload:
+        tie_strength: 0.770
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r029"
+      target: "civic__r030"
+      payload:
+        tie_strength: 0.560
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r029"
+      target: "civic__r034"
+      payload:
+        tie_strength: 0.595
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r029"
+      target: "civic__r042"
+      payload:
+        tie_strength: 0.665
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r030"
+      target: "civic__r031"
+      payload:
+        tie_strength: 0.630
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r030"
+      target: "civic__r035"
+      payload:
+        tie_strength: 0.805
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r030"
+      target: "civic__r043"
+      payload:
+        tie_strength: 0.560
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r031"
+      target: "civic__r032"
+      payload:
+        tie_strength: 0.700
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r031"
+      target: "civic__r036"
+      payload:
+        tie_strength: 0.420
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r031"
+      target: "civic__r044"
+      payload:
+        tie_strength: 0.455
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r032"
+      target: "civic__r033"
+      payload:
+        tie_strength: 0.770
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r032"
+      target: "civic__r037"
+      payload:
+        tie_strength: 0.630
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r032"
+      target: "civic__r045"
+      payload:
+        tie_strength: 0.350
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r033"
+      target: "civic__r034"
+      payload:
+        tie_strength: 0.840
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r033"
+      target: "civic__r038"
+      payload:
+        tie_strength: 0.840
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r033"
+      target: "civic__r046"
+      payload:
+        tie_strength: 0.840
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r034"
+      target: "civic__r035"
+      payload:
+        tie_strength: 0.315
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r034"
+      target: "civic__r039"
+      payload:
+        tie_strength: 0.455
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r034"
+      target: "civic__r047"
+      payload:
+        tie_strength: 0.735
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r035"
+      target: "civic__r036"
+      payload:
+        tie_strength: 0.385
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r035"
+      target: "civic__r040"
+      payload:
+        tie_strength: 0.665
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r035"
+      target: "civic__r048"
+      payload:
+        tie_strength: 0.630
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r036"
+      target: "civic__r037"
+      payload:
+        tie_strength: 0.455
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r036"
+      target: "civic__r041"
+      payload:
+        tie_strength: 0.280
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r036"
+      target: "civic__r049"
+      payload:
+        tie_strength: 0.525
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r037"
+      target: "civic__r038"
+      payload:
+        tie_strength: 0.525
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r037"
+      target: "civic__r042"
+      payload:
+        tie_strength: 0.490
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r037"
+      target: "civic__r050"
+      payload:
+        tie_strength: 0.420
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r038"
+      target: "civic__r039"
+      payload:
+        tie_strength: 0.595
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r038"
+      target: "civic__r043"
+      payload:
+        tie_strength: 0.700
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r038"
+      target: "civic__r051"
+      payload:
+        tie_strength: 0.315
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r039"
+      target: "civic__r040"
+      payload:
+        tie_strength: 0.665
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r039"
+      target: "civic__r044"
+      payload:
+        tie_strength: 0.315
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r039"
+      target: "civic__r052"
+      payload:
+        tie_strength: 0.805
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r040"
+      target: "civic__r041"
+      payload:
+        tie_strength: 0.735
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r040"
+      target: "civic__r045"
+      payload:
+        tie_strength: 0.525
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r040"
+      target: "civic__r053"
+      payload:
+        tie_strength: 0.700
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r041"
+      target: "civic__r042"
+      payload:
+        tie_strength: 0.805
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r041"
+      target: "civic__r046"
+      payload:
+        tie_strength: 0.735
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r041"
+      target: "civic__r054"
+      payload:
+        tie_strength: 0.595
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r042"
+      target: "civic__r043"
+      payload:
+        tie_strength: 0.280
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r042"
+      target: "civic__r047"
+      payload:
+        tie_strength: 0.350
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r042"
+      target: "civic__r055"
+      payload:
+        tie_strength: 0.490
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r043"
+      target: "civic__r044"
+      payload:
+        tie_strength: 0.350
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r043"
+      target: "civic__r048"
+      payload:
+        tie_strength: 0.560
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r043"
+      target: "civic__r056"
+      payload:
+        tie_strength: 0.385
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r044"
+      target: "civic__r045"
+      payload:
+        tie_strength: 0.420
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r044"
+      target: "civic__r049"
+      payload:
+        tie_strength: 0.770
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r044"
+      target: "civic__r057"
+      payload:
+        tie_strength: 0.280
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r045"
+      target: "civic__r046"
+      payload:
+        tie_strength: 0.490
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r045"
+      target: "civic__r050"
+      payload:
+        tie_strength: 0.385
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r045"
+      target: "civic__r058"
+      payload:
+        tie_strength: 0.770
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r046"
+      target: "civic__r047"
+      payload:
+        tie_strength: 0.560
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r046"
+      target: "civic__r051"
+      payload:
+        tie_strength: 0.595
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r046"
+      target: "civic__r059"
+      payload:
+        tie_strength: 0.665
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r047"
+      target: "civic__r048"
+      payload:
+        tie_strength: 0.630
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r047"
+      target: "civic__r052"
+      payload:
+        tie_strength: 0.805
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r047"
+      target: "civic__r060"
+      payload:
+        tie_strength: 0.560
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r048"
+      target: "civic__r049"
+      payload:
+        tie_strength: 0.700
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r048"
+      target: "civic__r053"
+      payload:
+        tie_strength: 0.420
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r048"
+      target: "civic__r001"
+      payload:
+        tie_strength: 0.735
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r049"
+      target: "civic__r050"
+      payload:
+        tie_strength: 0.770
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r049"
+      target: "civic__r054"
+      payload:
+        tie_strength: 0.630
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r049"
+      target: "civic__r002"
+      payload:
+        tie_strength: 0.630
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r050"
+      target: "civic__r051"
+      payload:
+        tie_strength: 0.840
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r050"
+      target: "civic__r055"
+      payload:
+        tie_strength: 0.840
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r050"
+      target: "civic__r003"
+      payload:
+        tie_strength: 0.525
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r051"
+      target: "civic__r052"
+      payload:
+        tie_strength: 0.315
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r051"
+      target: "civic__r056"
+      payload:
+        tie_strength: 0.455
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r051"
+      target: "civic__r004"
+      payload:
+        tie_strength: 0.420
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r052"
+      target: "civic__r053"
+      payload:
+        tie_strength: 0.385
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r052"
+      target: "civic__r057"
+      payload:
+        tie_strength: 0.665
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r052"
+      target: "civic__r005"
+      payload:
+        tie_strength: 0.315
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r053"
+      target: "civic__r054"
+      payload:
+        tie_strength: 0.455
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r053"
+      target: "civic__r058"
+      payload:
+        tie_strength: 0.280
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r053"
+      target: "civic__r006"
+      payload:
+        tie_strength: 0.805
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r054"
+      target: "civic__r055"
+      payload:
+        tie_strength: 0.525
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r054"
+      target: "civic__r059"
+      payload:
+        tie_strength: 0.490
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r054"
+      target: "civic__r007"
+      payload:
+        tie_strength: 0.700
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r055"
+      target: "civic__r056"
+      payload:
+        tie_strength: 0.595
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r055"
+      target: "civic__r060"
+      payload:
+        tie_strength: 0.700
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r055"
+      target: "civic__r008"
+      payload:
+        tie_strength: 0.595
+        rumor_channel: 0.210
+    - relation_type: "social_signal"
+      source: "civic__r056"
+      target: "civic__r057"
+      payload:
+        tie_strength: 0.665
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r056"
+      target: "civic__r001"
+      payload:
+        tie_strength: 0.595
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r056"
+      target: "civic__r009"
+      payload:
+        tie_strength: 0.490
+        rumor_channel: 0.310
+    - relation_type: "social_signal"
+      source: "civic__r057"
+      target: "civic__r058"
+      payload:
+        tie_strength: 0.735
+        rumor_channel: 0.160
+    - relation_type: "social_signal"
+      source: "civic__r057"
+      target: "civic__r002"
+      payload:
+        tie_strength: 0.805
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r057"
+      target: "civic__r010"
+      payload:
+        tie_strength: 0.385
+        rumor_channel: 0.410
+    - relation_type: "social_signal"
+      source: "civic__r058"
+      target: "civic__r059"
+      payload:
+        tie_strength: 0.805
+        rumor_channel: 0.260
+    - relation_type: "social_signal"
+      source: "civic__r058"
+      target: "civic__r003"
+      payload:
+        tie_strength: 0.420
+        rumor_channel: 0.185
+    - relation_type: "social_signal"
+      source: "civic__r058"
+      target: "civic__r011"
+      payload:
+        tie_strength: 0.280
+        rumor_channel: 0.235
+    - relation_type: "social_signal"
+      source: "civic__r059"
+      target: "civic__r060"
+      payload:
+        tie_strength: 0.280
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r059"
+      target: "civic__r004"
+      payload:
+        tie_strength: 0.630
+        rumor_channel: 0.285
+    - relation_type: "social_signal"
+      source: "civic__r059"
+      target: "civic__r012"
+      payload:
+        tie_strength: 0.770
+        rumor_channel: 0.335
+    - relation_type: "social_signal"
+      source: "civic__r060"
+      target: "civic__r001"
+      payload:
+        tie_strength: 0.630
+        rumor_channel: 0.360
+    - relation_type: "social_signal"
+      source: "civic__r060"
+      target: "civic__r005"
+      payload:
+        tie_strength: 0.840
+        rumor_channel: 0.385
+    - relation_type: "social_signal"
+      source: "civic__r060"
+      target: "civic__r013"
+      payload:
+        tie_strength: 0.665
+        rumor_channel: 0.160
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d1"
+      target: "civic__r001"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d1"
+      target: "civic__r002"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d1"
+      target: "civic__r003"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d1"
+      target: "civic__r004"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d1"
+      target: "civic__r005"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d1"
+      target: "civic__r006"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d1"
+      target: "civic__r007"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d1"
+      target: "civic__r008"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d1"
+      target: "civic__r009"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d1"
+      target: "civic__r010"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d2"
+      target: "civic__r011"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d2"
+      target: "civic__r012"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d2"
+      target: "civic__r013"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d2"
+      target: "civic__r014"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d2"
+      target: "civic__r015"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d2"
+      target: "civic__r016"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d2"
+      target: "civic__r017"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d2"
+      target: "civic__r018"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d2"
+      target: "civic__r019"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d2"
+      target: "civic__r020"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d3"
+      target: "civic__r021"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d3"
+      target: "civic__r022"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d3"
+      target: "civic__r023"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d3"
+      target: "civic__r024"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d3"
+      target: "civic__r025"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d3"
+      target: "civic__r026"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d3"
+      target: "civic__r027"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d3"
+      target: "civic__r028"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d3"
+      target: "civic__r029"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d3"
+      target: "civic__r030"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d4"
+      target: "civic__r031"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d4"
+      target: "civic__r032"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d4"
+      target: "civic__r033"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d4"
+      target: "civic__r034"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d4"
+      target: "civic__r035"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d4"
+      target: "civic__r036"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d4"
+      target: "civic__r037"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d4"
+      target: "civic__r038"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d4"
+      target: "civic__r039"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d4"
+      target: "civic__r040"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d5"
+      target: "civic__r041"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d5"
+      target: "civic__r042"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d5"
+      target: "civic__r043"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d5"
+      target: "civic__r044"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d5"
+      target: "civic__r045"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d5"
+      target: "civic__r046"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d5"
+      target: "civic__r047"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d5"
+      target: "civic__r048"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d5"
+      target: "civic__r049"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d5"
+      target: "civic__r050"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d6"
+      target: "civic__r051"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d6"
+      target: "civic__r052"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d6"
+      target: "civic__r053"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d6"
+      target: "civic__r054"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d6"
+      target: "civic__r055"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d6"
+      target: "civic__r056"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d6"
+      target: "civic__r057"
+      payload:
+        coverage: 0.720
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d6"
+      target: "civic__r058"
+      payload:
+        coverage: 0.798
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d6"
+      target: "civic__r059"
+      payload:
+        coverage: 0.876
+    - relation_type: "resident_policy_link"
+      source: "gov__command_d6"
+      target: "civic__r060"
+      payload:
+        coverage: 0.720
+    - relation_type: "facility_policy_link"
+      source: "gov__command_d1"
+      target: "infra__facility_01"
+      payload:
+        priority: 0.715
+    - relation_type: "facility_policy_link"
+      source: "gov__command_d1"
+      target: "infra__facility_02"
+      payload:
+        priority: 0.770
+    - relation_type: "facility_policy_link"
+      source: "gov__command_d2"
+      target: "infra__facility_03"
+      payload:
+        priority: 0.825
+    - relation_type: "facility_policy_link"
+      source: "gov__command_d2"
+      target: "infra__facility_04"
+      payload:
+        priority: 0.880
+    - relation_type: "facility_policy_link"
+      source: "gov__command_d3"
+      target: "infra__facility_05"
+      payload:
+        priority: 0.660
+    - relation_type: "facility_policy_link"
+      source: "gov__command_d3"
+      target: "infra__facility_06"
+      payload:
+        priority: 0.715
+    - relation_type: "facility_policy_link"
+      source: "gov__command_d4"
+      target: "infra__facility_07"
+      payload:
+        priority: 0.770
+    - relation_type: "facility_policy_link"
+      source: "gov__command_d4"
+      target: "infra__facility_08"
+      payload:
+        priority: 0.825
+    - relation_type: "facility_policy_link"
+      source: "gov__command_d5"
+      target: "infra__facility_09"
+      payload:
+        priority: 0.880
+    - relation_type: "facility_policy_link"
+      source: "gov__command_d5"
+      target: "infra__facility_10"
+      payload:
+        priority: 0.660
+    - relation_type: "facility_policy_link"
+      source: "gov__command_d6"
+      target: "infra__facility_11"
+      payload:
+        priority: 0.715
+    - relation_type: "facility_policy_link"
+      source: "gov__command_d6"
+      target: "infra__facility_12"
+      payload:
+        priority: 0.770
+
+  initial_events:
+    - event_type: "coordination_day"
+      timestamp: 2.0
+      priority: 5
+      event_handle: "coordination_02"
+      payload:
+        public_confidence: 0.520
+        repair_focus: 0.400
+    - event_type: "storm_front"
+      timestamp: 3.0
+      priority: 10
+      event_handle: "storm_d1_03"
+      payload:
+        district: 1
+        severity: 0.620
+    - event_type: "supply_drop"
+      timestamp: 4.0
+      priority: 7
+      event_handle: "supply_d1_04"
+      payload:
+        district: 1
+        stock_boost: 0.360
+        price_relief: 0.220
+    - event_type: "repair_wave"
+      timestamp: 5.0
+      priority: 6
+      event_handle: "repair_d1_05"
+      payload:
+        district: 1
+        crew_power: 0.440
+    - event_type: "rumor_spike"
+      timestamp: 6.0
+      priority: 8
+      event_handle: "rumor_d2_06"
+      payload:
+        district: 2
+        intensity: 0.550
+    - event_type: "storm_front"
+      timestamp: 7.0
+      priority: 10
+      event_handle: "storm_d3_07"
+      payload:
+        district: 3
+        severity: 0.860
+    - event_type: "evacuation_order"
+      timestamp: 8.0
+      priority: 9
+      event_handle: "evac_d3_08"
+      payload:
+        district: 3
+        urgency: 0.720
+    - event_type: "coordination_day"
+      timestamp: 9.0
+      priority: 5
+      event_handle: "coordination_09"
+      payload:
+        public_confidence: 0.600
+        repair_focus: 0.550
+    - event_type: "supply_drop"
+      timestamp: 11.0
+      priority: 7
+      event_handle: "supply_d3_11"
+      payload:
+        district: 3
+        stock_boost: 0.480
+        price_relief: 0.300
+    - event_type: "storm_front"
+      timestamp: 12.0
+      priority: 10
+      event_handle: "storm_d5_12"
+      payload:
+        district: 5
+        severity: 0.740
+    - event_type: "repair_wave"
+      timestamp: 14.0
+      priority: 6
+      event_handle: "repair_d3_14"
+      payload:
+        district: 3
+        crew_power: 0.680
+    - event_type: "rumor_spike"
+      timestamp: 16.0
+      priority: 8
+      event_handle: "rumor_d5_16"
+      payload:
+        district: 5
+        intensity: 0.680
+    - event_type: "coordination_day"
+      timestamp: 17.0
+      priority: 5
+      event_handle: "coordination_17"
+      payload:
+        public_confidence: 0.640
+        repair_focus: 0.640
+    - event_type: "evacuation_order"
+      timestamp: 19.0
+      priority: 9
+      event_handle: "evac_d5_19"
+      payload:
+        district: 5
+        urgency: 0.620
+    - event_type: "supply_drop"
+      timestamp: 20.0
+      priority: 7
+      event_handle: "supply_d5_20"
+      payload:
+        district: 5
+        stock_boost: 0.420
+        price_relief: 0.260
+    - event_type: "repair_wave"
+      timestamp: 23.0
+      priority: 6
+      event_handle: "repair_d5_23"
+      payload:
+        district: 5
+        crew_power: 0.580
+    - event_type: "storm_front"
+      timestamp: 25.0
+      priority: 10
+      event_handle: "storm_d6_25"
+      payload:
+        district: 6
+        severity: 0.690
+    - event_type: "coordination_day"
+      timestamp: 26.0
+      priority: 5
+      event_handle: "coordination_26"
+      payload:
+        public_confidence: 0.670
+        repair_focus: 0.720
+    - event_type: "rumor_spike"
+      timestamp: 28.0
+      priority: 8
+      event_handle: "rumor_d4_28"
+      payload:
+        district: 4
+        intensity: 0.610
+    - event_type: "supply_drop"
+      timestamp: 31.0
+      priority: 7
+      event_handle: "supply_d6_31"
+      payload:
+        district: 6
+        stock_boost: 0.400
+        price_relief: 0.240
+    - event_type: "repair_wave"
+      timestamp: 35.0
+      priority: 6
+      event_handle: "repair_d6_35"
+      payload:
+        district: 6
+        crew_power: 0.610
+    - event_type: "coordination_day"
+      timestamp: 36.0
+      priority: 5
+      event_handle: "coordination_36"
+      payload:
+        public_confidence: 0.700
+        repair_focus: 0.780
+    - event_type: "storm_front"
+      timestamp: 39.0
+      priority: 10
+      event_handle: "storm_d2_39"
+      payload:
+        district: 2
+        severity: 0.580
+    - event_type: "coordination_day"
+      timestamp: 42.0
+      priority: 5
+      event_handle: "coordination_42"
+      payload:
+        public_confidence: 0.740
+        repair_focus: 0.820
+
+  systems:
+    - system_id: "daily_resident_pressure"
+      triggered_by: ["tick"]
+      kind: "per_entity"
+      entity_type: "civic__resident"
+      writes:
+        - target: "civic__CivicState.safety"
+          expr: "std::clamp(civic__CivicState.safety + 0.014 * civic__ResidentProfile.preparedness - 0.024 * civic__CivicState.stress - 0.010 * civic__CivicState.rumor_belief, 0, 1)"
+        - target: "civic__CivicState.food"
+          expr: "std::clamp(civic__CivicState.food - 0.018 * event.dt + 0.009 * civic__CivicState.volunteer_capacity, 0, 1)"
+        - target: "civic__CivicState.water"
+          expr: "std::clamp(civic__CivicState.water - 0.014 * event.dt + 0.004 * civic__ResidentProfile.preparedness, 0, 1)"
+        - target: "civic__CivicState.stress"
+          expr: "std::clamp(civic__CivicState.stress + 0.018 * (1 - civic__CivicState.power) + 0.014 * (1 - civic__CivicState.water) + 0.012 * civic__CivicState.rumor_belief - 0.010 * civic__CivicState.trust, 0, 1)"
+        - target: "civic__CivicState.price_pressure"
+          expr: "std::clamp(civic__CivicState.price_pressure * 0.985 + civic.resilience::triage_priority(civic__CivicState.stress, civic__ResidentProfile.care_load, civic__ResidentProfile.mobility, civic__ResidentProfile.preparedness, civic__CivicState.trust) * 0.018, 0, 25)"
+        - target: "civic__CivicState.resilience_score"
+          expr: "civic.resilience::resilience_index(civic__CivicState.safety, civic__CivicState.power, civic__CivicState.water, civic__CivicState.food, civic__CivicState.medical_access, civic__CivicState.trust, civic__CivicState.volunteer_capacity, civic__CivicState.stress, civic__CivicState.rumor_belief)"
+
+    - system_id: "facility_daily_drift"
+      triggered_by: ["tick"]
+      kind: "per_entity"
+      entity_type: "infra__facility"
+      writes:
+        - target: "infra__FacilityStatus.reliability"
+          expr: "std::clamp(infra__FacilityStatus.reliability - 0.006 * infra__FacilityStatus.damage - 0.004 * infra__FacilityStatus.load / infra__FacilityStatus.capacity + 0.002 * infra__FacilityStatus.stock, 0, 1)"
+        - target: "infra__FacilityStatus.backlog"
+          expr: "std::clamp(infra__FacilityStatus.backlog + 0.018 * infra__FacilityStatus.damage + 0.010 * infra__FacilityStatus.load / infra__FacilityStatus.capacity - 0.006 * infra__FacilityStatus.stock, 0, 100)"
+        - target: "infra__FacilityStatus.load"
+          expr: "std::clamp(infra__FacilityStatus.load * 0.65, 0, infra__FacilityStatus.capacity * 2)"
+        - target: "infra__FacilityStatus.price_index"
+          expr: "std::clamp(infra__FacilityStatus.price_index * 0.92 + civic.resilience::scarcity_pressure(infra__FacilityStatus.stock, infra__FacilityStatus.load, infra__FacilityStatus.capacity, infra__FacilityStatus.damage, infra__FacilityStatus.reliability) + acme.market::bid_price_v2(infra__FacilityStatus.price_index) * 0.015, 0, 20)"
+
+    - system_id: "service_delivery"
+      triggered_by: ["tick"]
+      kind: "per_relation"
+      relation_type: "service_link"
+      writes:
+        - target: "self.infra__FacilityStatus.load"
+          expr: "std::clamp(self.infra__FacilityStatus.load + relation.demand_weight * (1 + other.civic__CivicState.stress), 0, self.infra__FacilityStatus.capacity * 2)"
+        - target: "other.civic__CivicState.power"
+          expr: "std::clamp(other.civic__CivicState.power + 0.030 * self.infra__FacilityStatus.reliability - 0.050 * self.infra__FacilityStatus.damage - 0.010 * self.infra__FacilityStatus.load / self.infra__FacilityStatus.capacity, 0, 1)"
+        - target: "other.civic__CivicState.water"
+          expr: "std::clamp(other.civic__CivicState.water + 0.022 * self.infra__FacilityStatus.stock + 0.018 * self.infra__FacilityStatus.reliability - 0.012 * relation.distance_km, 0, 1)"
+        - target: "other.civic__CivicState.medical_access"
+          expr: "std::clamp(other.civic__CivicState.medical_access + 0.018 * relation.essentiality * self.infra__FacilityStatus.reliability - 0.020 * self.infra__FacilityStatus.backlog, 0, 1)"
+        - target: "other.civic__CivicState.price_pressure"
+          expr: "std::clamp(other.civic__CivicState.price_pressure + 0.080 * self.infra__FacilityStatus.price_index + 0.030 * civic.resilience::scarcity_pressure(self.infra__FacilityStatus.stock, self.infra__FacilityStatus.load, self.infra__FacilityStatus.capacity, self.infra__FacilityStatus.damage, self.infra__FacilityStatus.reliability), 0, 25)"
+
+    - system_id: "social_signal_diffusion"
+      triggered_by: ["tick"]
+      kind: "per_relation"
+      relation_type: "social_signal"
+      where: "relation.tie_strength > 0.30"
+      writes:
+        - target: "other.civic__CivicState.rumor_belief"
+          expr: "std::clamp(other.civic__CivicState.rumor_belief + relation.rumor_channel * (self.civic__CivicState.rumor_belief - other.civic__CivicState.trust) * 0.060, 0, 1)"
+        - target: "other.civic__CivicState.trust"
+          expr: "std::clamp(other.civic__CivicState.trust + relation.tie_strength * (self.civic__CivicState.trust - other.civic__CivicState.rumor_belief) * 0.035, 0, 1)"
+        - target: "other.civic__CivicState.volunteer_capacity"
+          expr: "std::clamp(other.civic__CivicState.volunteer_capacity + relation.tie_strength * self.civic__CivicState.volunteer_capacity * 0.010 - 0.005 * other.civic__CivicState.stress, 0, 1)"
+
+    - system_id: "bootstrap_mutual_aid_after_storm"
+      triggered_by: ["storm_front"]
+      kind: "pair"
+      entity_type: "civic__resident"
+      where: "civic__ResidentProfile.district == other.civic__ResidentProfile.district && civic__CivicState.volunteer_capacity > 0.45 && other.civic__CivicState.stress > 0.32"
+      create_relations:
+        - relation_type: "volunteer_support"
+          source: "self"
+          target: "other"
+          expires_after: "7 + rng(\"aid_days\", 0, 3)"
+          when: "rng(\"aid_link\", 0, 1) < 0.055 + civic__CivicState.trust * 0.035"
+          payload:
+            aid: "std::clamp(civic__CivicState.volunteer_capacity * (0.7 + rng(\"aid_strength\", 0, 1) * 0.3), 0.05, 1)"
+            created_day: "event.timestamp"
+      emit_events:
+        - event_type: "mutual_aid_alert"
+          timestamp: "event.timestamp"
+          priority: 1
+          when: "rng(\"aid_alert\", 0, 1) < 0.08"
+          payload:
+            district: "civic__ResidentProfile.district"
+            urgency: "event.severity"
+
+    - system_id: "apply_mutual_aid"
+      triggered_by: ["tick"]
+      kind: "per_relation"
+      relation_type: "volunteer_support"
+      where: "relation.expires_at > event.timestamp"
+      writes:
+        - target: "other.civic__CivicState.food"
+          expr: "std::clamp(other.civic__CivicState.food + relation.aid * 0.040, 0, 1)"
+        - target: "other.civic__CivicState.water"
+          expr: "std::clamp(other.civic__CivicState.water + relation.aid * 0.030, 0, 1)"
+        - target: "other.civic__CivicState.stress"
+          expr: "std::clamp(other.civic__CivicState.stress - relation.aid * 0.025, 0, 1)"
+        - target: "self.civic__CivicState.volunteer_capacity"
+          expr: "std::clamp(self.civic__CivicState.volunteer_capacity - relation.aid * 0.012, 0, 1)"
+
+    - system_id: "storm_damages_facilities"
+      triggered_by: ["storm_front"]
+      kind: "per_entity"
+      entity_type: "infra__facility"
+      where: "infra__FacilityStatus.district == event.district"
+      writes:
+        - target: "infra__FacilityStatus.damage"
+          expr: "std::clamp(infra__FacilityStatus.damage + event.severity * (0.18 + rng(\"facility_damage\", 0, 1) * 0.12), 0, 1)"
+        - target: "infra__FacilityStatus.reliability"
+          expr: "std::clamp(infra__FacilityStatus.reliability - event.severity * (0.12 + rng(\"facility_reliability\", 0, 1) * 0.08), 0, 1)"
+        - target: "infra__FacilityStatus.backlog"
+          expr: "std::clamp(infra__FacilityStatus.backlog + event.severity * 1.8, 0, 100)"
+        - target: "infra__FacilityStatus.stock"
+          expr: "std::clamp(infra__FacilityStatus.stock - event.severity * 0.20, 0, 1)"
+      emit_events:
+        - event_type: "service_slowdown"
+          timestamp: "event.timestamp + 0.5"
+          priority: 2
+          when: "infra__FacilityStatus.reliability < 0.78 || rng(\"slowdown_emit\", 0, 1) < event.severity * 0.35"
+          payload:
+            district: "infra__FacilityStatus.district"
+            severity: "std::clamp(event.severity + infra__FacilityStatus.damage, 0, 1)"
+
+    - system_id: "storm_impacts_residents"
+      triggered_by: ["storm_front"]
+      kind: "per_entity"
+      entity_type: "civic__resident"
+      where: "civic__ResidentProfile.district == event.district"
+      writes:
+        - target: "civic__CivicState.safety"
+          expr: "std::clamp(civic__CivicState.safety - event.severity * (0.16 + (1 - civic__ResidentProfile.preparedness) * 0.14), 0, 1)"
+        - target: "civic__CivicState.stress"
+          expr: "std::clamp(civic__CivicState.stress + event.severity * (0.18 + civic__ResidentProfile.care_load * 0.10), 0, 1)"
+        - target: "civic__CivicState.power"
+          expr: "std::clamp(civic__CivicState.power - event.severity * 0.22, 0, 1)"
+        - target: "civic__CivicState.water"
+          expr: "std::clamp(civic__CivicState.water - event.severity * 0.12, 0, 1)"
+        - target: "civic__CivicState.rumor_belief"
+          expr: "std::clamp(civic__CivicState.rumor_belief + event.severity * (0.08 + rng(\"storm_rumor\", 0, 1) * 0.06), 0, 1)"
+      emit_events:
+        - event_type: "mutual_aid_alert"
+          timestamp: "event.timestamp + 0.25"
+          priority: 1
+          when: "civic__CivicState.stress > 0.62 && rng(\"resident_alert\", 0, 1) < 0.18"
+          payload:
+            district: "civic__ResidentProfile.district"
+            urgency: "civic__CivicState.stress"
+
+    - system_id: "service_slowdown_impact"
+      triggered_by: ["service_slowdown"]
+      kind: "per_relation"
+      relation_type: "service_link"
+      where: "self.infra__FacilityStatus.district == event.district"
+      writes:
+        - target: "other.civic__CivicState.power"
+          expr: "std::clamp(other.civic__CivicState.power - event.severity * 0.14 * relation.demand_weight, 0, 1)"
+        - target: "other.civic__CivicState.water"
+          expr: "std::clamp(other.civic__CivicState.water - event.severity * 0.10 * relation.demand_weight, 0, 1)"
+        - target: "other.civic__CivicState.medical_access"
+          expr: "std::clamp(other.civic__CivicState.medical_access - event.severity * 0.08 * relation.essentiality, 0, 1)"
+        - target: "other.civic__CivicState.stress"
+          expr: "std::clamp(other.civic__CivicState.stress + event.severity * 0.08, 0, 1)"
+
+    - system_id: "repair_wave_facilities"
+      triggered_by: ["repair_wave"]
+      kind: "per_entity"
+      entity_type: "infra__facility"
+      where: "infra__FacilityStatus.district == event.district"
+      writes:
+        - target: "infra__FacilityStatus.reliability"
+          expr: "std::clamp(infra__FacilityStatus.reliability + event.crew_power * 0.22, 0, 1)"
+        - target: "infra__FacilityStatus.damage"
+          expr: "std::clamp(infra__FacilityStatus.damage - event.crew_power * 0.20, 0, 1)"
+        - target: "infra__FacilityStatus.backlog"
+          expr: "std::clamp(infra__FacilityStatus.backlog - event.crew_power * 1.4, 0, 100)"
+        - target: "infra__FacilityStatus.stock"
+          expr: "std::clamp(infra__FacilityStatus.stock + event.crew_power * 0.10, 0, 1)"
+
+    - system_id: "supply_drop_residents"
+      triggered_by: ["supply_drop"]
+      kind: "per_entity"
+      entity_type: "civic__resident"
+      where: "civic__ResidentProfile.district == event.district"
+      writes:
+        - target: "civic__CivicState.food"
+          expr: "std::clamp(civic__CivicState.food + event.stock_boost * (0.8 + civic__ResidentProfile.care_load * 0.2), 0, 1)"
+        - target: "civic__CivicState.water"
+          expr: "std::clamp(civic__CivicState.water + event.stock_boost * 0.35, 0, 1)"
+        - target: "civic__CivicState.price_pressure"
+          expr: "std::clamp(civic__CivicState.price_pressure - event.price_relief, 0, 25)"
+        - target: "civic__CivicState.stress"
+          expr: "std::clamp(civic__CivicState.stress - event.stock_boost * 0.09, 0, 1)"
+
+    - system_id: "rumor_spike_residents"
+      triggered_by: ["rumor_spike"]
+      kind: "per_entity"
+      entity_type: "civic__resident"
+      where: "civic__ResidentProfile.district == event.district"
+      writes:
+        - target: "civic__CivicState.rumor_belief"
+          expr: "std::clamp(civic__CivicState.rumor_belief + event.intensity * (0.16 + rng(\"rumor_accept\", 0, 1) * 0.12) - civic__CivicState.trust * 0.06, 0, 1)"
+        - target: "civic__CivicState.trust"
+          expr: "std::clamp(civic__CivicState.trust - event.intensity * 0.08 + civic__ResidentProfile.preparedness * 0.03, 0, 1)"
+        - target: "civic__CivicState.stress"
+          expr: "std::clamp(civic__CivicState.stress + event.intensity * civic__CivicState.rumor_belief * 0.10, 0, 1)"
+
+    - system_id: "evacuation_residents"
+      triggered_by: ["evacuation_order"]
+      kind: "per_entity"
+      entity_type: "civic__resident"
+      where: "civic__ResidentProfile.district == event.district"
+      writes:
+        - target: "civic__CivicState.safety"
+          expr: "std::clamp(civic__CivicState.safety + event.urgency * civic__ResidentProfile.mobility * 0.20 - civic__ResidentProfile.care_load * 0.04, 0, 1)"
+        - target: "civic__CivicState.stress"
+          expr: "std::clamp(civic__CivicState.stress + event.urgency * (1 - civic__ResidentProfile.mobility) * 0.14 - civic__CivicState.trust * 0.04, 0, 1)"
+        - target: "civic__CivicState.food"
+          expr: "std::clamp(civic__CivicState.food - event.urgency * 0.05, 0, 1)"
+
+    - system_id: "coordination_policy_updates"
+      triggered_by: ["coordination_day"]
+      kind: "per_entity"
+      entity_type: "gov__command_cell"
+      writes:
+        - target: "gov__CommandState.coordination"
+          expr: "std::clamp(gov__CommandState.coordination + event.public_confidence * 0.04 + rng(\"coordination_gain\", 0, 1) * 0.02, 0, 1)"
+        - target: "gov__CommandState.public_messaging"
+          expr: "std::clamp(gov__CommandState.public_messaging + event.public_confidence * 0.03, 0, 1)"
+        - target: "gov__CommandState.legitimacy"
+          expr: "std::clamp(gov__CommandState.legitimacy + event.public_confidence * 0.025 - 0.006 * event.repair_focus, 0, 1)"
+        - target: "gov__CommandState.budget"
+          expr: "std::clamp(gov__CommandState.budget - event.repair_focus * 11.0, 0, 5000)"
+
+    - system_id: "resident_policy_effects"
+      triggered_by: ["coordination_day"]
+      kind: "per_relation"
+      relation_type: "resident_policy_link"
+      writes:
+        - target: "other.civic__ResidentProfile.preparedness"
+          expr: "std::clamp(other.civic__ResidentProfile.preparedness + relation.coverage * self.gov__CommandState.public_messaging * 0.018, 0, 1)"
+        - target: "other.civic__CivicState.trust"
+          expr: "std::clamp(other.civic__CivicState.trust + relation.coverage * self.gov__CommandState.legitimacy * 0.020, 0, 1)"
+        - target: "other.civic__CivicState.stress"
+          expr: "std::clamp(other.civic__CivicState.stress - relation.coverage * self.gov__CommandState.coordination * 0.012, 0, 1)"
+        - target: "self.gov__CommandState.budget"
+          expr: "std::clamp(self.gov__CommandState.budget - relation.coverage * 0.65, 0, 5000)"
+
+    - system_id: "facility_policy_effects"
+      triggered_by: ["repair_wave"]
+      kind: "per_relation"
+      relation_type: "facility_policy_link"
+      where: "other.infra__FacilityStatus.district == event.district"
+      writes:
+        - target: "other.infra__FacilityStatus.reliability"
+          expr: "std::clamp(other.infra__FacilityStatus.reliability + relation.priority * self.gov__CommandState.coordination * event.crew_power * 0.08, 0, 1)"
+        - target: "other.infra__FacilityStatus.backlog"
+          expr: "std::clamp(other.infra__FacilityStatus.backlog - relation.priority * self.gov__CommandState.field_teams * 0.20, 0, 100)"
+        - target: "self.gov__CommandState.budget"
+          expr: "std::clamp(self.gov__CommandState.budget - relation.priority * event.crew_power * 2.8, 0, 5000)"
+
+    - system_id: "mutual_aid_alert_resident_response"
+      triggered_by: ["mutual_aid_alert"]
+      kind: "per_entity"
+      entity_type: "civic__resident"
+      where: "civic__ResidentProfile.district == event.district"
+      writes:
+        - target: "civic__CivicState.volunteer_capacity"
+          expr: "std::clamp(civic__CivicState.volunteer_capacity + event.urgency * civic__CivicState.trust * 0.030 - civic__CivicState.stress * 0.010, 0, 1)"
+        - target: "civic__CivicState.trust"
+          expr: "std::clamp(civic__CivicState.trust + event.urgency * 0.010, 0, 1)"
+        - target: "civic__CivicState.stress"
+          expr: "std::clamp(civic__CivicState.stress - event.urgency * civic__CivicState.volunteer_capacity * 0.018, 0, 1)"

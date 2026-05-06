@@ -1,0 +1,7 @@
+{
+  "scenario_id": "v4_rng_value",
+  "success": true,
+  "errors": [],
+  "warnings": [],
+  "statistics": {"final_time": "0.000000", "processed_events": "1", "state_fingerprint": "9978acb3a402389"}
+}

@@ -1,0 +1,115 @@
+scenario_id: "v2_minimal_purchase"
+schema_version: "2.0.0"
+master_seed: 101
+
+goal_statement: |
+  Exercise the smallest useful v2 agent-layer path: one agent, one item, one
+  shop, deterministic movement, queue entry, purchase, and final state output.
+
+assumptions:
+  - assumption_id: "v2_minimal_assume_001"
+    category: "fixture"
+    description: "A single isolated buyer is enough to verify the basic purchase path."
+    rationale: "This fixture keeps unrelated social and queue effects out of the test."
+    confidence_level: REJECT
+
+entities:
+  - entity_id: "v2_minimal_entity"
+    entity_type: "fixture_anchor"
+    description: "Compatibility anchor for v1 validation gates."
+    attributes:
+      fixture: "v2_minimal_purchase"
+
+variables:
+  - variable_id: "v2_minimal_anchor"
+    entity_ref: "v2_minimal_entity"
+    type: FLOAT
+    default_value: 1.0
+    min_value: 0
+    description: "Compatibility anchor variable."
+  - variable_id: "v2_minimal_guard"
+    entity_ref: "v2_minimal_entity"
+    type: FLOAT
+    default_value: 1.0
+    min_value: 0
+    description: "Compatibility guard variable."
+
+dependency_edges:
+  - edge_id: "v2_minimal_anchor_guard"
+    source_variable: "v2_minimal_anchor"
+    target_variable: "v2_minimal_guard"
+    propagation_function_id: "linear_scale"
+    weight: 1.0
+
+constraints:
+  - constraint_id: "v2_minimal_guard_non_negative"
+    affected_variables: ["v2_minimal_guard"]
+    constraint_expression: "v2_minimal_guard >= 0"
+    enforcement_level: REJECT
+    error_message: "v2_minimal_guard must remain non-negative."
+
+events: []
+
+evaluation_criteria:
+  - criterion_id: "v2_minimal_eval"
+    metric_name: "compatibility_guard"
+    aggregation_method: FINAL
+    input_variables: ["v2_minimal_guard"]
+    threshold_min: 0
+    description: "Compatibility check for the v1 validation path."
+
+agent_layer:
+  world:
+    duration: 8.0
+    time_unit: "minutes"
+    map_width: 20.0
+    map_height: 20.0
+    default_walking_speed: 1.0
+    max_event_count: 200
+
+  locations:
+    - location_id: "buyer_start"
+      location_type: "start"
+      x: 0.0
+      y: 0.0
+    - location_id: "snack_stall_location"
+      location_type: "shop"
+      x: 2.0
+      y: 0.0
+
+  items:
+    - item_id: "warm_snack"
+      category: "food"
+      tags: ["food", "warm"]
+      base_appeal: 1.2
+
+  shops:
+    - shop_id: "snack_stall"
+      location_ref: "snack_stall_location"
+      service_time: 0.2
+      queue_capacity: 2
+      inventory:
+        - item_id: "warm_snack"
+          price: 2.0
+          stock: 3
+
+  agents:
+    - agent_id: "buyer_one"
+      start_location_ref: "buyer_start"
+      budget: 4.0
+      movement_speed: 1.0
+      hunger: 1.0
+      social_susceptibility: 0.0
+      memory_slots: 2
+      policy_ref: "simple_policy"
+      traits:
+        patience: 0.5
+      preferences:
+        warm_snack: 1.4
+
+  policies:
+    - policy_id: "simple_policy"
+      movement_policy: "nearest_available"
+      observation_policy: "none"
+      conversation_policy: "none"
+      purchase_policy: "weighted_rule_v2"

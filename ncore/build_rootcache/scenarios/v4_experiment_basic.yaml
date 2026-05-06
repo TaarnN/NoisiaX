@@ -1,0 +1,14 @@
+experiment_id: "v4_experiment_basic"
+base_scenario: "v4_rng_value.yaml"
+
+seed_plan:
+  seeds: [1, 2, 3]
+
+metrics:
+  - metric_id: "sample_value"
+    kind: "typed_field_final"
+    typed_field:
+      entity_id: "n1"
+      component_type_id: "Sample"
+      field_name: "value"
+

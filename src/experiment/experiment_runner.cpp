@@ -1,5 +1,6 @@
 #include "noisiax/experiment/experiment.hpp"
 
+#include "noisiax/extensions/default_registry.hpp"
 #include "noisiax/serialization/yaml_serializer.hpp"
 
 #include <yaml-cpp/yaml.h>
@@ -711,6 +712,9 @@ ExperimentMetric parse_metric(const YAML::Node& node) {
     ExperimentMetric metric;
     metric.metric_id = node["metric_id"].as<std::string>();
     metric.kind = node["kind"].as<std::string>();
+    if (node["config"]) {
+        metric.config = yaml_to_json_value(node["config"]);
+    }
     if (metric.kind == "runtime_stat") {
         metric.key = node["key"].as<std::string>();
         return metric;
@@ -727,7 +731,10 @@ ExperimentMetric parse_metric(const YAML::Node& node) {
         metric.typed_field = typed;
         return metric;
     }
-    throw std::runtime_error("Unknown metric kind: " + metric.kind);
+    if (!metric.config.has_value()) {
+        throw std::runtime_error("Unknown metric kind: " + metric.kind + " (missing config)");
+    }
+    return metric;
 }
 
 ExperimentDefinition parse_experiment_definition(const fs::path& file_path) {
@@ -967,6 +974,7 @@ ExperimentResult run_experiment(const ExperimentDefinition& definition, const Ex
 
     serialization::YamlSerializer serializer;
     const std::string base_hash = base.resolved_hash;
+    const auto ext_registry = noisiax::extensions::make_default_registry();
 
     std::vector<ExperimentDefinition::VariantDefinition> variants = definition.variants;
     if (variants.empty()) {
@@ -1106,6 +1114,19 @@ ExperimentResult run_experiment(const ExperimentDefinition& definition, const Ex
                             metric_samples[metric.metric_id].push_back(numeric);
                         }
                         continue;
+                    }
+
+                    if (!metric.config.has_value()) {
+                        throw std::runtime_error("Unknown metric kind: " + metric.kind);
+                    }
+                    const auto* metric_fn = ext_registry.experiment_metrics().find(metric.kind);
+                    if (metric_fn == nullptr) {
+                        throw std::runtime_error("Unknown metric kind: " + metric.kind);
+                    }
+                    const std::string value = (*metric_fn)(run_result, *metric.config);
+                    manifest.metrics[metric.metric_id] = value;
+                    if (auto v = parse_double_strict(value); v.has_value()) {
+                        metric_samples[metric.metric_id].push_back(*v);
                     }
                 }
 

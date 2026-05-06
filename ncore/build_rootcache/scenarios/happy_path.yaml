@@ -1,0 +1,158 @@
+# NoisiaX V1 Happy Path Scenario
+# This scenario demonstrates a valid, complete scenario definition
+
+scenario_id: "happy_path_demo_001"
+schema_version: "1.0.0"
+master_seed: 42
+
+goal_statement: |
+  Demonstrate a simple deterministic scenario with entities, variables,
+  dependencies, constraints, and events that executes successfully.
+
+assumptions:
+  - assumption_id: "assume_001"
+    category: "market_conditions"
+    description: "Market conditions remain stable during simulation period"
+    rationale: "Baseline scenario assumes no external shocks"
+    confidence_level: WARN
+
+  - assumption_id: "assume_002"
+    category: "data_quality"
+    description: "Input data is complete and accurate"
+    rationale: "Scenario relies on high-quality input data"
+    source: "Data governance policy v2.1"
+    confidence_level: REJECT
+
+entities:
+  - entity_id: "entity_product_001"
+    entity_type: "product"
+    description: "Primary product in the scenario"
+    attributes:
+      category: "electronics"
+      region: "north_america"
+
+  - entity_id: "entity_customer_001"
+    entity_type: "customer_segment"
+    description: "Target customer segment"
+    attributes:
+      demographic: "millennial"
+      income_bracket: "middle"
+
+variables:
+  - variable_id: "var_base_price"
+    entity_ref: "entity_product_001"
+    type: FLOAT
+    default_value: 99.99
+    min_value: 0
+    max_value: 10000
+    description: "Base price of the product"
+
+  - variable_id: "var_demand"
+    entity_ref: "entity_product_001"
+    type: INTEGER
+    default_value: 1000
+    min_value: 0
+    description: "Monthly demand units"
+
+  - variable_id: "var_discount_rate"
+    entity_ref: "entity_product_001"
+    type: FLOAT
+    default_value: 0.1
+    min_value: 0
+    max_value: 1
+    description: "Discount rate applied to base price"
+
+  - variable_id: "var_revenue"
+    entity_ref: "entity_product_001"
+    type: FLOAT
+    default_value: 0
+    description: "Calculated revenue (derived variable)"
+
+dependency_edges:
+  - edge_id: "edge_001"
+    source_variable: "var_base_price"
+    target_variable: "var_revenue"
+    propagation_function_id: "linear_scale"
+    weight: 1.0
+    metadata:
+      description: "Price directly affects revenue"
+
+  - edge_id: "edge_002"
+    source_variable: "var_demand"
+    target_variable: "var_revenue"
+    propagation_function_id: "linear_scale"
+    weight: 1.0
+    metadata:
+      description: "Demand directly affects revenue"
+
+  - edge_id: "edge_003"
+    source_variable: "var_discount_rate"
+    target_variable: "var_base_price"
+    propagation_function_id: "apply_discount"
+    weight: -1.0
+    metadata:
+      description: "Discount reduces effective price"
+
+constraints:
+  - constraint_id: "constraint_001"
+    affected_variables:
+      - "var_base_price"
+      - "var_discount_rate"
+    constraint_expression: "var_base_price * (1 - var_discount_rate) >= 50"
+    enforcement_level: REJECT
+    error_message: "Effective price after discount must be at least 50"
+    correction_hint: "Reduce discount rate or increase base price"
+
+  - constraint_id: "constraint_002"
+    affected_variables:
+      - "var_demand"
+    constraint_expression: "var_demand >= 0"
+    enforcement_level: REJECT
+    error_message: "Demand cannot be negative"
+
+events:
+  - event_id: "event_001"
+    event_type: SCHEDULED
+    timestamp: 1.0
+    priority: 10
+    event_payload:
+      action: "update_demand"
+      new_value: "1200"
+    description: "Increase demand at time step 1"
+
+  - event_id: "event_002"
+    event_type: SCHEDULED
+    timestamp: 2.0
+    priority: 5
+    event_payload:
+      action: "apply_promotion"
+      discount_increase: "0.05"
+    description: "Apply promotional discount at time step 2"
+
+evaluation_criteria:
+  - criterion_id: "eval_001"
+    metric_name: "total_revenue"
+    aggregation_method: SUM
+    input_variables:
+      - "var_revenue"
+    target_value: 100000
+    threshold_min: 50000
+    description: "Total revenue should exceed minimum threshold"
+
+  - criterion_id: "eval_002"
+    metric_name: "average_price"
+    aggregation_method: AVG
+    input_variables:
+      - "var_base_price"
+    threshold_min: 80
+    threshold_max: 150
+    description: "Average price should stay within bounds"
+
+metadata:
+  author: "NoisiaX Team"
+  created_date: "2024-01-15"
+  modified_date: "2024-01-15"
+  version: "1.0.0"
+  custom_fields:
+    project: "V1_Demo"
+    classification: "public"

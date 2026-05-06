@@ -120,6 +120,7 @@ struct ExperimentMetric {
     std::string kind;  // runtime_stat | typed_field_final
     std::string key;
     std::optional<TypedFieldTarget> typed_field;
+    std::optional<JsonValue> config;
 
     bool operator==(const ExperimentMetric& other) const = default;
 };

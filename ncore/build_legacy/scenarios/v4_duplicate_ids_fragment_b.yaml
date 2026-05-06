@@ -1,0 +1,25 @@
+scenario_id: "v4_duplicate_ids_fragment_b"
+schema_version: "1.0.0"
+master_seed: 1
+goal_statement: "v4 duplicate id fragment B."
+assumptions: []
+
+typed_layer:
+  world:
+    duration: 1.0
+    time_unit: "ticks"
+    max_event_count: 1
+
+  component_types:
+    - component_type_id: "Counter"
+      fields:
+        value: INTEGER
+
+  entity_types: []
+  relation_types: []
+  event_types: []
+  entities: []
+  relations: []
+  initial_events: []
+  systems: []
+

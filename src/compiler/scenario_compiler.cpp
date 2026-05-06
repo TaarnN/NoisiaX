@@ -1,4 +1,5 @@
 #include "noisiax/compiler/scenario_compiler.hpp"
+#include "noisiax/extensions/default_registry.hpp"
 #include <algorithm>
 #include <stdexcept>
 #include <string_view>
@@ -432,6 +433,19 @@ CompiledScenario ScenarioCompiler::compile(const schema::ScenarioDefinition& sce
     
     // Register default propagation functions
     register_default_functions();
+
+    // Import any statically linked extension propagation functions.
+    {
+        const auto ext_registry = extensions::make_default_registry();
+        for (const auto& [id, fn] : ext_registry.propagation_functions().functions()) {
+            register_propagation_function(id, fn);
+        }
+        for (const auto& [alias, canonical] : ext_registry.propagation_functions().aliases()) {
+            if (const auto* fn = ext_registry.propagation_functions().find(canonical); fn != nullptr) {
+                register_propagation_function(alias, *fn);
+            }
+        }
+    }
     
     // Build parameter handles
     compiled.parameter_handles = build_parameter_handles(scenario);
@@ -464,6 +478,12 @@ CompiledScenario ScenarioCompiler::compile(const schema::ScenarioDefinition& sce
     
     // Copy registered functions
     compiled.propagation_functions = registered_functions_;
+
+    // Capture expression function registry for the typed runtime.
+    {
+        const auto ext_registry = extensions::make_default_registry();
+        compiled.expression_functions = ext_registry.expression_functions();
+    }
     
     // Statistics
     compiled.total_variables = scenario.variables.size();
@@ -604,25 +624,35 @@ std::vector<ConstraintProgram> ScenarioCompiler::build_constraint_programs(
 }
 
 void ScenarioCompiler::register_default_functions() {
-    register_propagation_function("linear_scale", [](double& target, const double& source, double weight) {
+    const auto linear_scale = [](double& target, const double& source, double weight) {
         target = source * weight;
-    });
+    };
+    register_propagation_function("linear_scale", linear_scale);
+    register_propagation_function("core::linear_scale", linear_scale);
     
-    register_propagation_function("apply_discount", [](double& target, const double& source, double weight) {
+    const auto apply_discount = [](double& target, const double& source, double weight) {
         target = target * (1.0 + source * weight);
-    });
+    };
+    register_propagation_function("apply_discount", apply_discount);
+    register_propagation_function("core::apply_discount", apply_discount);
     
-    register_propagation_function("additive", [](double& target, const double& source, double weight) {
+    const auto additive = [](double& target, const double& source, double weight) {
         target += source * weight;
-    });
+    };
+    register_propagation_function("additive", additive);
+    register_propagation_function("core::additive", additive);
     
-    register_propagation_function("max_propagate", [](double& target, const double& source, double weight) {
+    const auto max_propagate = [](double& target, const double& source, double weight) {
         target = std::max(target, source * weight);
-    });
+    };
+    register_propagation_function("max_propagate", max_propagate);
+    register_propagation_function("core::max_propagate", max_propagate);
     
-    register_propagation_function("min_propagate", [](double& target, const double& source, double weight) {
+    const auto min_propagate = [](double& target, const double& source, double weight) {
         target = std::min(target, source * weight);
-    });
+    };
+    register_propagation_function("min_propagate", min_propagate);
+    register_propagation_function("core::min_propagate", min_propagate);
 }
 
 } // namespace noisiax::compiler
